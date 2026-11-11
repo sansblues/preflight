@@ -12,7 +12,7 @@ const count = (m: Map<Item, number>, k: Item) => m.set(k, (m.get(k) ?? 0) + 1);
 // Each item is kind|subject|severity.
 
 // Kinds VolvoWrench doesn't have: Preflight's improvements.
-const Extra: Kind[] = ['broken', 'unfinished', 'missing', 'conflict', 'copy', 'naming', 'no-bxt', 'timer-start', 'timer-jump', 'no-game-end'];
+const Extra: Kind[] = ['broken', 'unfinished', 'missing', 'conflict', 'copy', 'naming', 'no-bxt', 'timer-start', 'timer-jump', 'no-game-end', 'no-level-end', 'setup'];
 // Deliberate severity changes. VolvoWrench prints these uncoloured, except a number written differently, which it shows in red.
 const Reseverity: Partial<Record<Kind, [string, string]>> = {
   'alias-script': ['info', 'check'], 'probably-disallowed': ['info', 'check'], 'cvar-format': ['problem', 'check'], 'bxt-version': ['info', 'problem'],
@@ -28,6 +28,8 @@ const harmless = (command: string) => {
 const intended = (kind: string, subject: string) =>
   (['disallowed', 'probably-disallowed', 'bxt-command'].includes(kind) && harmless(subject)) || (kind.startsWith('load') && /\.sav$/i.test(subject)) ||
   (kind === 'bxt-command' && /^bxt_timer_(start|reset)$/i.test(subject));
+// Individual levels: the official config's setup and triggers, which Preflight checks against the config instead.
+const SetupItems = /^(cvar\|sv_cheats "1"|cvar\|bxt_show_custom_triggers "0"|bxt-command\|(bxt_ch_set_(health|armor) |bxt_timer_(reset|start|stop)\||bxt_triggers_delete 1\|)|disallowed\|(wait|disconnect)\||(autojump|ducktap)\|-)/;
 const severity = (color: string) => (color === 'illegal' ? 'problem' : color === 'warning' ? 'check' : 'info');
 
 /** VolvoWrench's lines for one demo, as items. */
@@ -128,7 +130,8 @@ for (const file of process.argv.slice(2)) {
     demos++;
     const theirs = vwItems(d.entries), ours = ourItems(report.findings, d.path, report.mode);
     const keys = new Set([...theirs.items.keys(), ...ours.keys()]);
-    const diff = [...keys].filter(k => theirs.items.get(k) !== ours.get(k));
+    const diff = [...keys].filter(k => theirs.items.get(k) !== ours.get(k) &&
+      !(report.individualLevel && SetupItems.test(k) && (ours.get(k) ?? 0) < (theirs.items.get(k) ?? 0)));
     if (!diff.length && !theirs.unmapped.length) { same++; continue; }
     console.log(`\n${d.path}`);
     for (const k of diff.slice(0, 10)) console.log(`  ${k}: VolvoWrench ${theirs.items.get(k) ?? 0}, Preflight ${ours.get(k) ?? 0}`);

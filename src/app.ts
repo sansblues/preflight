@@ -85,12 +85,11 @@ const Modes = { scriptless: 'Scriptless', scripted: 'Scripted' } as const;
 
 function report(r: Report) {
   const findings = r.findings.filter(f => f.severity !== 'info');
-  const [verdict, tone] = r.individualLevel ? ['Individual levels aren\'t supported yet', 'info']
-    : findings.some(f => recorded(f.kind)) ? ['Invalid run', 'problem']
+  const [verdict, tone] = findings.some(f => recorded(f.kind)) ? ['Invalid run', 'problem']
     : findings.some(f => f.severity === 'problem') ? ['Not ready to submit', 'problem']
     : ['Ready to submit', 'good'];
   const last = r.demos[r.demos.length - 1];
-  const maps = [...new Set([r.demos[0]?.map, last?.map])].filter(Boolean).join(' to ');
+  const covers = r.individualLevel ? r.individualLevel.chapter ?? 'Individual level' : [...new Set([r.demos[0]?.map, last?.map])].filter(Boolean).join(' to ');
   const retime = r.findings.find(f => f.kind === 'blue-shift')?.subject.split(' (')[0];
 
   render(
@@ -98,10 +97,10 @@ function report(r: Report) {
     h('div', { class: 'report' },
       h('h1', { class: 'verdict', 'data-severity': tone, 'aria-live': 'polite' }, verdict),
       h('div', { class: 'summary' },
-        h('p', {}, [r.time && formatTime(r.time), plural(r.demos.length, 'demo'), maps, retime && `retimed ${retime}`, r.fps.highest && `${Math.round(r.fps.highest)} fps`].filter(Boolean).join(' · ')),
-        !r.individualLevel && h('div', { class: 'toggle', role: 'group', 'aria-label': 'Rules' }, ...(['scriptless', 'scripted'] as const).map(m =>
+        h('p', {}, [r.time && formatTime(r.time), plural(r.demos.length, 'demo'), covers, retime && `retimed ${retime}`, r.fps.highest && `${Math.round(r.fps.highest)} fps`].filter(Boolean).join(' · ')),
+        h('div', { class: 'toggle', role: 'group', 'aria-label': 'Rules' }, ...(['scriptless', 'scripted'] as const).map(m =>
           h('button', { 'aria-pressed': String(r.mode === m), click: () => r.mode !== m && send({ mode: m }) }, Modes[m])))),
-      !r.individualLevel && cards(findings)),
+      cards(findings)),
   );
 }
 
@@ -129,7 +128,7 @@ function listed(items: Finding[]) {
   ];
 }
 
-const Sentences = ['broken', 'timer-start', 'timer-jump'];
+const Sentences = ['broken', 'timer-start', 'timer-jump', 'setup'];
 
 function subject(f: Finding) {
   if (!f.subject) return null;

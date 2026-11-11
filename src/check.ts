@@ -7,6 +7,7 @@
 
 import { seconds, type Time } from './bxt.ts';
 import type { At, Demo } from './demo.ts';
+import levels from './levels.json' with { type: 'json' };
 import rules from './rules.json' with { type: 'json' };
 
 /** The fingerprint of VolvoWrench's logic that this file ports (see tools/rules.ts). */
@@ -27,8 +28,8 @@ export type Report = {
   time?: Time;
   findings: Finding[];
   fps: { highest: number };
-  /** Detected from where and how the timer starts; see checkRun. */
-  individualLevel: boolean;
+  /** Set for an individual level, with its chapter when the run uses the official setup; see findLevel. */
+  individualLevel?: { chapter?: string };
   rules: { bxtVersion: string; source: typeof rules.source };
 };
 
@@ -42,7 +43,9 @@ export const Kinds = {
   'timer-jump': { severity: 'problem', title: ['The timer jumps between demos', 'The timer jumps # times between demos'], fix: 'Add the demo that\'s missing, or put the demos in order.' },
   'load-unseen': { severity: 'problem', title: ['A save wasn\'t made in these demos', '# saves weren\'t made in these demos'], fix: 'It was probably made in a missing demo. Add the missing demos.' },
   'no-game-end': { severity: 'problem', title: ['The game doesn\'t end'], fix: 'The last demo is probably missing. Add it.' },
+  'no-level-end': { severity: 'problem', title: ['The chapter doesn\'t end'], fix: 'The last demo is probably missing. Add it.' },
   'naming': { severity: 'check', title: ['A demo has an unusual name', '# demos have unusual names'], fix: 'BXT names demos like run_1.dem and run_2.dem. Keep those names so the order is clear.' },
+  'setup': { severity: 'problem', recorded: true, title: ['The setup isn\'t the official one'], fix: 'Use the chapter\'s config and save from speedrun.com\'s resources next time.' },
   'no-bxt': { severity: 'problem', recorded: true, title: ['A demo has no BXT data', '# demos have no BXT data'], fix: 'Record with BunnymodXT and _bxt_save_runtime_data_in_demos 1 next time.' },
   'bxt-version': { severity: 'problem', recorded: true, title: ['BXT isn\'t the required version'], fix: `Use ${rules.bxtVersion.replace(/^(\w{7})\w*-CLEAN based on (.+)$/, '$1 ($2)')} for your next run.` },
   'cvar': { severity: 'problem', recorded: true, title: ['A setting isn\'t allowed', '# settings aren\'t allowed'], fix: 'Set it to the required value before your next run.' },
@@ -98,6 +101,76 @@ const AlwaysLoadable = ['QUICK', 'HARD', 'AUTOSAVE'];
 const BlueShiftStart = 'changelevel2 ba_security1 tram3_security1';
 const MaxTimerJump = 2; // Seconds. Complete runs show at most 1.
 const StartMap = 'c1a0'; // Where Half-Life full-game runs start.
+
+type Box = { min: number[]; max: number[] };
+type Items = Partial<Record<string, number>>;
+type Level = { name: string; first: string; endMap?: string; save?: string; start?: Box; stop?: Box; gives?: Items; health?: number | null; armor?: number | null; legacy?: Items };
+/** What an official config sets up: the items, and the health and armor limits (null for none, undefined when it doesn't set them). */
+type Config = { gives: Items; health?: number | null; armor?: number | null };
+const Levels = levels.levels as Level[];
+// What the official configs' triggers run (see tools/levels.ts).
+const StartTrigger = 'bxt_timer_reset;bxt_timer_start;bxt_triggers_delete 1';
+const StopTrigger = 'bxt_timer_stop;stop';
+// Whether a box lies within another. BXT records boxes as floats; the configs write them rounded.
+const within = (inner: Box, outer: Box) => [0, 1, 2].every(i => inner.min[i] > outer.min[i] - 0.01 && inner.max[i] < outer.max[i] + 0.01);
+// A start trigger around the official one starts the timer no later, and a stop trigger inside it stops it no earlier.
+// Older versions of the configs differ like that: Unforeseen Consequences used to stop in a smaller box.
+const officialStart = (box: Box, level: Level) => !!level.start && within(level.start, box);
+const officialStop = (box: Box, level?: Level) => !!level?.stop && within(box, level.stop);
+
+type Position = { file: number; group: number };
+const before = (a: Position, b: Position) => a.file < b.file || (a.file === b.file && a.group < b.group);
+const same = (a: Position, b?: Position) => !!b && a.file === b.file && a.group === b.group;
+
+/**
+ * An individual level's chapter, its setup, and where it starts and ends, or undefined for a full-game run.
+ * Most chapters start at the current config's start trigger, which tells them apart. Hazard Course and Anomalous
+ * Materials are new games. The legacy configs load the chapter's first map with cheats on, start the timer, record,
+ * then give the items and turn cheats off. Other runs that start away from the first map with the timer at zero,
+ * or start the timer inside a demo without ending the game, are individual levels without an official setup.
+ */
+function findLevel(files: Input[]) {
+  type Event = Position & { time?: Time } & ({ type: 'trigger'; command: string; box: Box } | { type: 'gameEnd' | 'timerStart' | 'cheatsOff' } | { type: 'changelevel'; map: string });
+  const events: Event[] = [];
+  let firstTime: Time | undefined, cheats = false;
+  files.forEach(({ demo }, file) => demo.bxt.forEach((g, group) => {
+    const time = g.data.find(d => d.type === 'time');
+    const at = { file, group, ...(time?.type === 'time' && { time }) };
+    if (time?.type === 'time') firstTime ??= time;
+    for (const d of g.data) {
+      const command = d.type === 'command' ? d.command.trim().toLowerCase() : '';
+      if (d.type === 'cvars' && file === 0 && group === 0) cheats = Number(d.values.get('sv_cheats') ?? 0) !== 0;
+      else if (d.type === 'trigger') events.push({ ...at, type: 'trigger', command: d.command.trim(), box: { min: d.min, max: d.max } });
+      else if (d.type === 'gameEnd') events.push({ ...at, type: 'gameEnd' });
+      else if (/^changelevel2?\s/.test(command)) events.push({ ...at, type: 'changelevel', map: command.split(/\s+/)[1] });
+      else if (/^bxt_timer_start\b/.test(command)) events.push({ ...at, type: 'timerStart' });
+      else if (/^sv_cheats\s/.test(command) && Number(command.split(/\s+/)[1]) === 0) events.push({ ...at, type: 'cheatsOff' });
+    }
+  }));
+  const header = files[0]?.demo.header;
+  const has = (type: Event['type']) => events.some(e => e.type === type);
+  const start = events.find(e => e.type === 'trigger' && e.command === StartTrigger);
+  const cheatsOff = events.find(e => e.type === 'cheatsOff' && e.file === 0);
+  const legacy = !start && cheats && !!cheatsOff && !has('timerStart');
+  const [hazard, materials] = Levels;
+  const lastMap = events.filter(e => e.type === 'changelevel').map(e => e.map).at(-1);
+  const level = start?.type === 'trigger' ? Levels.find(l => officialStart(start.box, l))
+    : header?.mapName === hazard.first ? hazard
+    : header?.mapName === materials.first ? (!has('gameEnd') && (lastMap === materials.endMap ||
+      events.some(e => e.type === 'trigger' && e.command === StopTrigger && officialStop(e.box, materials))) ? materials : undefined)
+    : legacy ? Levels.find(l => l.legacy && l.first === header?.mapName) : undefined;
+  const offStart = !!header?.gameDir.startsWith('valve') && header.mapName !== StartMap && !!firstTime && seconds(firstTime) <= MaxTimerJump;
+  if (!start && !level && !offStart && !(has('timerStart') && !has('gameEnd'))) return undefined;
+  // The setup runs until the start trigger, or until the legacy config turns cheats off.
+  const setupEnd = start ?? (legacy && level?.legacy && cheatsOff ? { file: 0, group: cheatsOff.group + 1 } : undefined);
+  const config: Config | undefined = start ? level && { gives: level.gives ?? {}, health: level.health, armor: level.armor }
+    : setupEnd && level?.legacy && { gives: level.legacy };
+  const end = level && events.find(e => (!setupEnd || !before(e, setupEnd)) && (
+    e.type === 'trigger' ? e.command === StopTrigger && officialStop(e.box, level)
+    : e.type === 'changelevel' ? e.map === level.endMap
+    : e.type === 'gameEnd' && !level.endMap && !level.stop));
+  return { level, start, setupEnd, config, end };
+}
 
 function disallowed(cmd: string, mode: Mode) {
   return !cmd.startsWith('REPORT_TO_DEMO') &&
@@ -160,13 +233,16 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
   const detectedMode = detectMode(files[0]?.demo);
   const mode = options.mode ?? detectedMode;
   const saves = new Set<string>(); // Saves made so far in the run.
+  const il = findLevel(files);
+  const setup: Setup = { gives: new Map(), cheats: false, extra: [] };
+  let setupChecked = false;
   let blueShiftStart: Time | undefined;
   let time: Time | undefined;
-  let gameEnded = false, timerStarted = false, timerMoved = false;
+  let gameEnded = false, timerMoved = false;
   const demos: Report['demos'] = [];
   const timeline: { name: string; first: Time; last: Time; recovered?: boolean }[] = [];
 
-  for (const { name, demo } of files) {
+  for (const [file, { name, demo }] of files.entries()) {
     const where = (at?: At): Where => ({ demo: name, ...at });
     if (demo.error) add(demo.recovered ? 'unfinished' : 'broken', demo.recovered ? '' : demo.error, where());
 
@@ -181,11 +257,20 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
       const skill = { ...rules.skillCvars, ...(map.startsWith('ba_') ? rules.blueShiftSkillCvars : {}) };
       for (const [k, v] of Object.entries(skill)) cvarRules.set(k, v);
     }
+    if (il) cvarRules.delete('BXT_SHOW_CUSTOM_TRIGGERS'); // The configs hide their triggers.
 
     let hasBxt = false, gameEnd = false, firstTime: Time | undefined, demoTime: Time | undefined;
-    for (const group of demo.bxt) {
+    for (const [index, group] of demo.bxt.entries()) {
       const at = where({ frame: group.frame, time: group.time });
       const groupTime = group.data.find(d => d.type === 'time');
+      const position = { file, group: index };
+      const inSetup = !!il?.setupEnd && before(position, il.setupEnd);
+      if (il?.setupEnd && !inSetup && !setupChecked) {
+        checkSetup(setup, il.config, add, at);
+        setupChecked = true;
+      }
+      const ending = group.data.some(d => d.type === 'gameEnd');
+      const official: string[] = []; // Commands the official triggers run in this frame.
       // Key presses in this frame, to tell a pressed jump or duck from a scripted one.
       const presses = { '+JUMP': 0, '-JUMP': 0, '+DUCK': 0, '-DUCK': 0 };
 
@@ -201,6 +286,10 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
               for (const k of rules.steamRemoves) cvarRules.delete(k);
             }
             for (const [k, v] of d.values) {
+              if (inSetup && k.toLowerCase() === 'sv_cheats') {
+                setup.cheats = Number(v) !== 0;
+                continue;
+              }
               const rule = cvarRules.get(k.toUpperCase());
               if (rule === undefined) continue;
               const same = compareCvar(rule, v);
@@ -236,11 +325,14 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
           case 'script':
             add('config', d.filename, at);
             break;
-          case 'command':
-            checkCommand(d.command.trim(), mode, presses, saves, cvarRules, timerMoved, add, at);
-            if (/^bxt_timer_start\b/i.test(d.command.trim())) timerStarted = true;
+          case 'command': {
+            const cmd = d.command.trim();
+            if (official[0] === cmd) official.shift();
+            else if (!(inSetup && setupCommand(cmd, setup)) && !(ending && cmd === 'disconnect')) // Hazard Course disconnects when it ends.
+              checkCommand(cmd, mode, presses, saves, cvarRules, timerMoved, add, at);
             if (!blueShiftStart && d.command.trim().toLowerCase() === BlueShiftStart && groupTime?.type === 'time') blueShiftStart = groupTime;
             break;
+          }
           case 'gameEnd':
             if (gameEnd) break;
             gameEnd = true;
@@ -251,9 +343,13 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
               add('blue-shift', `${formatTime(fromSeconds(s))} (${formatTime(groupTime)} minus ${formatTime(start)})`, at);
             }
             break;
-          case 'trigger':
+          case 'trigger': {
+            const command = d.command.trim(), box = { min: d.min, max: d.max };
+            if ((command === StartTrigger && same(position, il?.start) && il?.level) || (command === StopTrigger && officialStop(box, il?.level))) official.push(...command.split(';'));
+            else if (il && command === StopTrigger) add('setup', 'The run stops at a trigger that isn\'t the config\'s.', at);
             add('trigger', `${d.command} at (${d.min.join(', ')}) to (${d.max.join(', ')})`, at);
             break;
+          }
           case 'split':
             add('split', `${d.name || '(unnamed)'} on ${d.map} at (${d.min.join(', ')}) to (${d.max.join(', ')})`, at);
             break;
@@ -273,14 +369,12 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
     demos.push({ name, map, ...(demoTime && { time: demoTime }), ...(demo.error && { error: demo.error }) });
   }
 
-  // Individual levels start away from the first map with the timer at zero (some, like Hazard Course, end the game),
-  // or start the timer inside a demo and don't end the game.
   const [start] = timeline;
-  const first = files[0]?.demo.header;
-  const offStart = !!first?.gameDir.startsWith('valve') && first.mapName !== StartMap && !!start && seconds(start.first) <= MaxTimerJump;
-  const individualLevel = offStart || (timerStarted && !gameEnded);
-  checkDemoSet(files, add, individualLevel);
-  if (start && seconds(start.first) > MaxTimerJump && !individualLevel)
+  if (il?.setupEnd && !setupChecked) checkSetup(setup, il.config, add, { demo: files[0].name });
+  // The configs are Half-Life's. Opposing Force and Blue Shift have their own leaderboards and rules.
+  if (il && !il.start && !il.level && files[0].demo.header.gameDir.startsWith('valve')) add('setup', 'The run doesn\'t start at the config\'s trigger.', { demo: files[0].name });
+  checkDemoSet(files, add, !!il);
+  if (start && seconds(start.first) > MaxTimerJump && !il)
     add('timer-start', `${formatTime(start.first)} at the start of ${start.name}`, { demo: start.name });
   for (const [i, b] of timeline.entries()) {
     const a = timeline[i - 1];
@@ -293,7 +387,9 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
   // With demos missing, a save that was never made may simply be in one of them.
   if (['missing', 'timer-start', 'timer-jump'].some(k => [...findings.keys()].some(key => key.startsWith(`${k}\n`))))
     for (const [key, f] of findings) if (f.kind === 'load-unknown') findings.set(key, { ...f, kind: 'load-unseen' });
-  if (timeline.length && !gameEnded && !individualLevel) add('no-game-end', '', { demo: timeline[timeline.length - 1].name });
+  if (timeline.length && !gameEnded && !il) add('no-game-end', '', { demo: timeline[timeline.length - 1].name });
+  if (timeline.length && il?.level && !il.end) add('no-level-end', '', { demo: timeline[timeline.length - 1].name });
+  if (il?.end?.time) time = il.end.time; // The timer runs on after the end of the chapter.
 
   const severityOrder = { problem: 0, check: 1, info: 2 };
   const kindOrder = Object.keys(Kinds);
@@ -307,7 +403,7 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
     fps: {
       highest: ok.length ? 1 / Math.min(...ok.map(s => s.frametimeMin)) : 0,
     },
-    individualLevel,
+    ...(il && { individualLevel: { ...(il.level && { chapter: il.level.name }) } }),
     rules: { bxtVersion: rules.bxtVersion, source: rules.source },
   };
 }
@@ -350,6 +446,44 @@ function checkCommand(
   if (cmd.includes('CUST_') && !rules.allowedCust.some(c => cmd.includes(c))) add('cust', command, at);
   if (disallowed(cmd, mode)) add('disallowed', command, at);
   if (probablyDisallowed(cmd, mode)) add('probably-disallowed', command, at);
+}
+
+type Setup = { gives: Map<string, { item: string; n: number }>; health?: number; armor?: number; cheats: boolean; extra: string[] };
+// Cheats work while the config sets up, and these aren't the config's. Later, with cheats off, they do nothing.
+const SetupCheats = ['impulse 101', 'god', 'noclip'];
+
+/** Takes note of a command the official config runs before an individual level starts, and says whether it was one. */
+function setupCommand(command: string, setup: Setup) {
+  const [name, value] = command.toLowerCase().split(/\s+/);
+  if (name.startsWith('-')) return true; // The keys let go when the console closes.
+  if (name === 'wait' || name === 'w') return true;
+  if (SetupCheats.includes(command.toLowerCase().replace(/\s+/g, ' '))) return !!setup.extra.push(command);
+  if (value === undefined) return false;
+  if (name === 'give') {
+    const item = command.split(/\s+/)[1];
+    setup.gives.set(value, { item, n: (setup.gives.get(value)?.n ?? 0) + 1 });
+  } else if (name === 'bxt_ch_set_health') setup.health = Number(value);
+  else if (name === 'bxt_ch_set_armor') setup.armor = Number(value);
+  else if (name === 'sv_cheats') setup.cheats = Number(value) !== 0;
+  else return false;
+  return true;
+}
+
+/** The config may be changed to give less, never more. */
+function checkSetup(setup: Setup, config: Config | undefined, add: (kind: Kind, subject: string, where: Where) => void, at: Where) {
+  if (!config) return add('setup', 'The run starts at a trigger that isn\'t the config\'s.', at);
+  for (const [key, { item, n }] of setup.gives) {
+    const allowed = Object.entries(config.gives).find(([k]) => k.toLowerCase() === key)?.[1] ?? 0;
+    if (n > allowed) add('setup', allowed ? `It gives ${item} ${n} times, and the config only ${allowed}.` : `It gives ${item}, which the config doesn't.`, at);
+  }
+  for (const k of ['health', 'armor'] as const) {
+    const value = setup[k], limit = config[k];
+    if (value === undefined) continue;
+    if (limit === undefined) add('setup', `It sets ${k} to ${value}, which the config doesn't.`, at);
+    else if (limit !== null && value > limit) add('setup', `It sets ${k} to ${value}, and the config allows up to ${limit}.`, at);
+  }
+  for (const command of setup.extra) add('setup', `It runs ${command}, which the config doesn't.`, at);
+  if (setup.cheats) add('setup', 'Cheats are still on when the run starts.', at);
 }
 
 function checkDemoSet(files: Input[], add: (kind: Kind, subject: string, where: Where) => void, individualLevel: boolean) {

@@ -1,8 +1,9 @@
 // Synthetic runs that break every rule, for the unit tests and for comparing with VolvoWrench
 // (tools/write-gauntlet.ts writes them to disk for the oracle).
 
-import type { BxtData } from '../src/bxt.ts';
+import type { BxtData, Vec3 } from '../src/bxt.ts';
 import type { MoveVars } from '../src/demo.ts';
+import levels from '../src/levels.json' with { type: 'json' };
 import rules from '../src/rules.json' with { type: 'json' };
 import { archive, bxtCommands, demo, type Frame } from './write.ts';
 
@@ -113,11 +114,51 @@ export function gauntlet(): Run[] {
     }],
   };
 
-  // Or set up before recording: then they start away from c1a0 with the timer at zero. Hazard Course ends the game.
+  // Hazard Course is a new game on t0a0 that ends the game, and the game disconnects.
   const configured: Run = {
     name: 'individual-level-config',
-    files: [{ name: 'IL_536.dem', bytes: bxtDemo([[...start({}, { at: 0.05 })], [{ type: 'gameEnd' }, time(90)]], { map: 't0a0' }) }],
+    files: [{ name: 'IL_536.dem', bytes: bxtDemo([[...start({}, { at: 0.05 })], [{ type: 'gameEnd' }, command('disconnect'), time(90)]], { map: 't0a0' }) }],
   };
 
-  return [scriptless, scripted, tasAutojump, individualLevel, configured];
+  // Blast Pit with the official config, as a real run records it: the setup, the start trigger, then the stop trigger.
+  const blastPit = (name: string, setup: string[], stop: { min: number[]; max: number[] }): Run => {
+    const level = levels.levels.find(l => l.name === 'Blast Pit')!;
+    const trigger = (box: { min: number[]; max: number[] }, command: string): BxtData => ({ type: 'trigger', min: box.min as Vec3, max: box.max as Vec3, command: `${command}\n` });
+    return {
+      name,
+      files: [
+        { name: 'BP-IL_1.dem', bytes: bxtDemo([
+          [...start({ sv_cheats: '1', bxt_show_custom_triggers: '0' }, { at: 0.06 })],
+          setup.map(command),
+          [trigger(level.start!, 'bxt_timer_reset;bxt_timer_start;bxt_triggers_delete 1'), ...['bxt_timer_reset', 'bxt_timer_start', 'bxt_triggers_delete 1', 'changelevel2 c1a4 c1a3toc1a4'].map(command), time(1.36)],
+          [command('save quick'), time(20)],
+        ], { map: 'c1a3' }) },
+        { name: 'BP-IL_2.dem', bytes: bxtDemo([
+          [...start({ bxt_show_custom_triggers: '0' }, { at: 20.5 })],
+          [trigger(stop, 'bxt_timer_stop;stop'), command('bxt_timer_stop'), command('stop'), time(233.138)],
+        ], { map: 'c1a4b' }) },
+      ],
+    };
+  };
+  const setup = ['wait', 'w 6', 'give item_suit\r', 'give weapon_crowbar', ' give weapon_handgrenade', 'give weapon_handgrenade\r',
+    'bxt_ch_set_health 100 // Maximum 100\r', 'bxt_ch_set_armor 0 // Maximum 100\r', 'sv_cheats 0\r', '-jump 32', '-duck 133'];
+  const stop = levels.levels.find(l => l.name === 'Blast Pit')!.stop!;
+  const official = blastPit('blast-pit', setup, stop);
+  // More than the config gives, cheats left on, and a stop trigger of its own.
+  const tampered = blastPit('blast-pit-tampered', [...setup.filter(c => !c.startsWith('sv_cheats')), 'give weapon_handgrenade', 'give weapon_rpg', 'bxt_ch_set_health 200', 'impulse 101'],
+    { min: [0, 0, 0], max: [8, 8, 8] });
+
+  // The legacy config loads the chapter's first map with cheats on, starts the timer, records, gives the items and turns cheats off.
+  const legacy = (name: string, extra: string[] = []): Run => ({
+    name,
+    files: [{ name: 'IL.dem', bytes: bxtDemo([
+      [...start({ sv_cheats: '1' }, { at: 0.01 })],
+      [...['wait', 'give item_suit', 'give weapon_crowbar', 'give weapon_shotgun', ...extra, 'sv_cheats 0'].map(command), time(0.4)],
+      [command('save quick'), time(100)],
+      [command('changelevel2 c2a1 c1a4ktoc2a1'), time(150.25)],
+      [time(151)],
+    ], { map: 'c1a4' }) }],
+  });
+
+  return [scriptless, scripted, tasAutojump, individualLevel, configured, official, tampered, legacy('legacy'), legacy('legacy-tampered', ['bxt_ch_set_health 100'])];
 }

@@ -1,0 +1,1047 @@
+{
+  "source": {
+    "resource": "https://www.speedrun.com/hl1/resources",
+    "configs": "b7dd2d0fd429b8ba"
+  },
+  "levels": [
+    {
+      "name": "Hazard Course",
+      "first": "t0a0"
+    },
+    {
+      "name": "Anomalous Materials",
+      "first": "c1a0",
+      "endMap": "c1a0c",
+      "legacy": {},
+      "stop": {
+        "min": [
+          1465.51,
+          1026.64,
+          591.626
+        ],
+        "max": [
+          1701.9,
+          1143.97,
+          775.969
+        ]
+      }
+    },
+    {
+      "name": "Unforeseen Consequences",
+      "first": "c1a0c",
+      "endMap": "c1a2",
+      "legacy": {
+        "item_suit": 1
+      },
+      "save": "UC-IL",
+      "start": {
+        "min": [
+          1465.51,
+          1026.64,
+          591.626
+        ],
+        "max": [
+          1701.9,
+          1143.97,
+          775.969
+        ]
+      },
+      "stop": {
+        "min": [
+          2207,
+          -1093,
+          -575.969
+        ],
+        "max": [
+          2432,
+          -824.612,
+          -480.39
+        ]
+      },
+      "gives": {
+        "item_suit": 1
+      },
+      "health": 99,
+      "armor": 13
+    },
+    {
+      "name": "Office Complex",
+      "first": "c1a2",
+      "endMap": "c1a3",
+      "legacy": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 4,
+        "weapon_handgrenade": 2
+      },
+      "save": "OC-IL",
+      "start": {
+        "min": [
+          2258.64,
+          -832.581,
+          -575.969
+        ],
+        "max": [
+          2383.97,
+          -824.612,
+          -480.39
+        ]
+      },
+      "stop": {
+        "min": [
+          -22.6841,
+          1437.74,
+          0.031246
+        ],
+        "max": [
+          133.792,
+          1593.24,
+          103.96
+        ]
+      },
+      "gives": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_handgrenade": 2,
+        "weapon_glock": 5
+      },
+      "health": 100,
+      "armor": 100
+    },
+    {
+      "name": "We've Got Hostiles",
+      "first": "c1a3",
+      "endMap": "c1a4",
+      "legacy": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 4,
+        "weapon_handgrenade": 2,
+        "item_battery": 3,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 2
+      },
+      "save": "WGH-IL",
+      "start": {
+        "min": [
+          -167.28,
+          -1703.03,
+          1116.03
+        ],
+        "max": [
+          -163.101,
+          -1576.03,
+          1211.55
+        ]
+      },
+      "stop": {
+        "min": [
+          1000.21,
+          986.298,
+          0.0312485
+        ],
+        "max": [
+          1139.76,
+          1007.92,
+          127.969
+        ]
+      },
+      "gives": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 4,
+        "weapon_handgrenade": 2,
+        "weapon_glock": 5
+      },
+      "health": 100,
+      "armor": 100
+    },
+    {
+      "name": "Blast Pit",
+      "first": "c1a4",
+      "endMap": "c2a1",
+      "legacy": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 4,
+        "weapon_handgrenade": 2,
+        "item_battery": 3,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 3,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4
+      },
+      "save": "BP-IL",
+      "start": {
+        "min": [
+          1000.21,
+          986.298,
+          0.0312485
+        ],
+        "max": [
+          1139.76,
+          1007.92,
+          127.969
+        ]
+      },
+      "stop": {
+        "min": [
+          364.207,
+          -1183.94,
+          0.0312562
+        ],
+        "max": [
+          373.495,
+          -1043.2,
+          143.969
+        ]
+      },
+      "gives": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_handgrenade": 2,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "weapon_glock": 4,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 6
+      },
+      "health": 100,
+      "armor": 100
+    },
+    {
+      "name": "Power Up",
+      "first": "c2a1",
+      "endMap": "c2a2",
+      "legacy": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 4,
+        "weapon_handgrenade": 2,
+        "item_battery": 5,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 3,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "weapon_357": 1,
+        "ammo_357": 3,
+        "weapon_tripmine": 5
+      },
+      "save": "PU-IL",
+      "start": {
+        "min": [
+          364.207,
+          -1183.94,
+          0.0312562
+        ],
+        "max": [
+          373.495,
+          -1043.2,
+          143.969
+        ]
+      },
+      "stop": {
+        "min": [
+          2110.25,
+          -1855.97,
+          0.451571
+        ],
+        "max": [
+          2129.04,
+          -1480.33,
+          136.289
+        ]
+      },
+      "gives": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "weapon_357": 1,
+        "ammo_357": 1,
+        "weapon_glock": 4,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 6,
+        "weapon_tripmine": 5,
+        "weapon_handgrenade": 2
+      },
+      "health": 100,
+      "armor": 100
+    },
+    {
+      "name": "On A Rail",
+      "first": "c2a2",
+      "endMap": "c2a3",
+      "legacy": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 4,
+        "weapon_handgrenade": 2,
+        "item_battery": 5,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 3,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "weapon_9mmAR_grenades": 1,
+        "ammo_ARgrenades": 1,
+        "weapon_357": 1,
+        "ammo_357": 3,
+        "weapon_tripmine": 5
+      },
+      "save": "OAR-IL",
+      "start": {
+        "min": [
+          2110.25,
+          -1855.97,
+          0.451571
+        ],
+        "max": [
+          2129.04,
+          -1480.33,
+          136.289
+        ]
+      },
+      "stop": {
+        "min": [
+          1628.43,
+          -1918.31,
+          -1487.97
+        ],
+        "max": [
+          1835.58,
+          -1911.65,
+          -1359.63
+        ]
+      },
+      "gives": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_handgrenade": 2,
+        "weapon_357": 1,
+        "ammo_357": 4,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "weapon_9mmAR_grenades": 1,
+        "ammo_ARgrenades": 5,
+        "weapon_glock": 4,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 6,
+        "weapon_tripmine": 5
+      },
+      "health": 100,
+      "armor": 100
+    },
+    {
+      "name": "Apprehension",
+      "first": "c2a3",
+      "endMap": "c2a4",
+      "legacy": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 4,
+        "weapon_handgrenade": 2,
+        "item_battery": 5,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 3,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "weapon_9mmAR_grenades": 1,
+        "ammo_ARgrenades": 1,
+        "weapon_357": 1,
+        "ammo_357": 4,
+        "weapon_tripmine": 5,
+        "weapon_satchel": 4
+      },
+      "save": "APP-IL",
+      "start": {
+        "min": [
+          1628.43,
+          -1918.31,
+          -1487.97
+        ],
+        "max": [
+          1835.58,
+          -1911.65,
+          -1359.63
+        ]
+      },
+      "stop": {
+        "min": [
+          -2665.42,
+          87.778,
+          148.451
+        ],
+        "max": [
+          -2663.64,
+          163.962,
+          237.984
+        ]
+      },
+      "gives": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_handgrenade": 2,
+        "weapon_357": 1,
+        "ammo_357": 4,
+        "weapon_glock": 4,
+        "weapon_satchel": 5,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 6,
+        "weapon_tripmine": 5,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "weapon_9mmAR_grenades": 1,
+        "ammo_ARgrenades": 5
+      },
+      "health": 100,
+      "armor": 100
+    },
+    {
+      "name": "Residue Processing",
+      "first": "c2a4",
+      "endMap": "c2a4d",
+      "legacy": {
+        "item_suit": 1,
+        "weapon_crowbar": 1
+      },
+      "save": "RP-IL",
+      "start": {
+        "min": [
+          -2665.42,
+          87.778,
+          148.451
+        ],
+        "max": [
+          -2663.64,
+          163.962,
+          237.984
+        ]
+      },
+      "stop": {
+        "min": [
+          -79.9688,
+          -2780.32,
+          -1375.22
+        ],
+        "max": [
+          -16.0312,
+          -2765.91,
+          -1296.48
+        ]
+      },
+      "gives": {
+        "item_suit": 1,
+        "weapon_handgrenade": 2,
+        "weapon_crowbar": 1
+      },
+      "health": 100,
+      "armor": 100
+    },
+    {
+      "name": "Questionable Ethics",
+      "first": "c2a4d",
+      "endMap": "c2a5",
+      "legacy": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 1,
+        "ammo_9mm": 1,
+        "weapon_357": 1,
+        "weapon_satchel": 2,
+        "item_battery": 3,
+        "ammo_357": 1
+      },
+      "save": "QE-IL",
+      "start": {
+        "min": [
+          -79.9688,
+          -2780.32,
+          -1375.22
+        ],
+        "max": [
+          -16.0312,
+          -2765.91,
+          -1296.48
+        ]
+      },
+      "stop": {
+        "min": [
+          -1399.97,
+          -2157.01,
+          66.5138
+        ],
+        "max": [
+          -1128.03,
+          -2125.52,
+          252.439
+        ]
+      },
+      "gives": {
+        "item_suit": 1,
+        "weapon_handgrenade": 2,
+        "weapon_satchel": 2,
+        "weapon_glock": 5,
+        "ammo_ARgrenades": 2,
+        "weapon_357": 1,
+        "weapon_crowbar": 1
+      },
+      "health": 100,
+      "armor": 100
+    },
+    {
+      "name": "Surface Tension",
+      "first": "c2a5",
+      "endMap": "c3a1",
+      "legacy": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 1,
+        "ammo_9mm": 1,
+        "weapon_357": 1,
+        "weapon_satchel": 2,
+        "item_battery": 3,
+        "ammo_357": 2,
+        "weapon_tripmine": 3,
+        "weapon_gauss": 1,
+        "ammo_gaussclip": 2,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 2,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 2,
+        "ammo_ARgrenades": 1
+      },
+      "save": "ST-IL",
+      "start": {
+        "min": [
+          -1399.97,
+          -2157.01,
+          66.5138
+        ],
+        "max": [
+          -1128.03,
+          -2125.52,
+          252.439
+        ]
+      },
+      "stop": {
+        "min": [
+          2516.03,
+          2355.9,
+          -1885.58
+        ],
+        "max": [
+          2630.7,
+          2376.33,
+          -1736.03
+        ]
+      },
+      "gives": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_handgrenade": 2,
+        "weapon_glock": 5,
+        "weapon_snark": 1,
+        "weapon_satchel": 2,
+        "weapon_357": 1,
+        "ammo_357": 3,
+        "weapon_crossbow": 1,
+        "ammo_crossbow": 1,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 6,
+        "weapon_tripmine": 3,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "weapon_9mmAR_grenades": 1,
+        "ammo_ARgrenades": 5,
+        "weapon_gauss": 1,
+        "ammo_gaussclip": 2
+      },
+      "health": 100,
+      "armor": 100
+    },
+    {
+      "name": "Forget About Freeman",
+      "first": "c3a1",
+      "endMap": "c3a2e",
+      "legacy": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 1,
+        "ammo_9mm": 6,
+        "weapon_357": 1,
+        "weapon_satchel": 4,
+        "item_battery": 5,
+        "ammo_357": 2,
+        "weapon_tripmine": 5,
+        "weapon_gauss": 1,
+        "ammo_gaussclip": 4,
+        "weapon_shotgun": 1,
+        "weapon_rpg": 1,
+        "ammo_rpgclip": 5,
+        "ammo_buckshot": 5,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "ammo_ARgrenades": 3,
+        "weapon_handgrenade": 2,
+        "weapon_crossbow": 1,
+        "ammo_crossbow": 3,
+        "weapon_hornetgun": 1,
+        "weapon_snark": 3
+      },
+      "save": "FAF-IL",
+      "start": {
+        "min": [
+          2516.03,
+          2355.9,
+          -1885.58
+        ],
+        "max": [
+          2630.7,
+          2376.33,
+          -1736.03
+        ]
+      },
+      "stop": {
+        "min": [
+          1700,
+          530,
+          2050
+        ],
+        "max": [
+          2050,
+          964,
+          2250
+        ]
+      },
+      "gives": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_handgrenade": 2,
+        "weapon_glock": 5,
+        "weapon_snark": 2,
+        "weapon_satchel": 5,
+        "weapon_rpg": 1,
+        "ammo_rpgclip": 5,
+        "weapon_hornetgun": 1,
+        "weapon_357": 1,
+        "ammo_357": 4,
+        "weapon_crossbow": 1,
+        "ammo_crossbow": 5,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 6,
+        "weapon_tripmine": 5,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "weapon_9mmAR_grenades": 1,
+        "ammo_ARgrenades": 5,
+        "weapon_gauss": 1,
+        "ammo_gaussclip": 4
+      },
+      "health": null,
+      "armor": 100
+    },
+    {
+      "name": "Lambda Core",
+      "first": "c3a2e",
+      "endMap": "c4a1",
+      "legacy": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 1,
+        "ammo_9mm": 6,
+        "weapon_357": 1,
+        "weapon_satchel": 4,
+        "item_battery": 5,
+        "ammo_357": 2,
+        "weapon_tripmine": 5,
+        "weapon_gauss": 1,
+        "ammo_gaussclip": 4,
+        "weapon_shotgun": 1,
+        "weapon_rpg": 1,
+        "ammo_rpgclip": 5,
+        "ammo_buckshot": 5,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "ammo_ARgrenades": 3,
+        "weapon_handgrenade": 2,
+        "weapon_crossbow": 1,
+        "ammo_crossbow": 3,
+        "weapon_hornetgun": 1,
+        "weapon_snark": 3
+      },
+      "save": "LC-IL",
+      "start": {
+        "min": [
+          1700,
+          530,
+          2050
+        ],
+        "max": [
+          2050,
+          964,
+          2250
+        ]
+      },
+      "stop": {
+        "min": [
+          57.1653,
+          1860.76,
+          1664.03
+        ],
+        "max": [
+          172.684,
+          2029.28,
+          1686.6
+        ]
+      },
+      "gives": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 5,
+        "weapon_snark": 2,
+        "weapon_rpg": 1,
+        "ammo_rpgclip": 5,
+        "weapon_satchel": 5,
+        "weapon_hornetgun": 1,
+        "weapon_357": 1,
+        "ammo_357": 4,
+        "weapon_crossbow": 1,
+        "ammo_crossbow": 5,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 6,
+        "weapon_tripmine": 5,
+        "weapon_handgrenade": 2,
+        "weapon_9mmAR_grenades": 1,
+        "ammo_ARgrenades": 5,
+        "weapon_gauss": 1,
+        "ammo_gaussclip": 4,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4
+      },
+      "health": null,
+      "armor": 100
+    },
+    {
+      "name": "Xen",
+      "first": "c4a1",
+      "endMap": "c4a2",
+      "legacy": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 1,
+        "ammo_9mm": 6,
+        "weapon_357": 1,
+        "weapon_satchel": 4,
+        "item_battery": 5,
+        "ammo_357": 2,
+        "weapon_tripmine": 5,
+        "weapon_gauss": 1,
+        "ammo_gaussclip": 4,
+        "weapon_shotgun": 1,
+        "weapon_rpg": 1,
+        "ammo_rpgclip": 5,
+        "ammo_buckshot": 5,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 3,
+        "ammo_ARgrenades": 3,
+        "weapon_handgrenade": 2,
+        "weapon_crossbow": 1,
+        "ammo_crossbow": 3,
+        "weapon_hornetgun": 1,
+        "weapon_snark": 3,
+        "weapon_egon": 1,
+        "item_longjump": 1
+      },
+      "save": "XEN-IL",
+      "start": {
+        "min": [
+          57.1653,
+          1860.76,
+          1664.03
+        ],
+        "max": [
+          172.684,
+          2029.28,
+          1686.6
+        ]
+      },
+      "stop": {
+        "min": [
+          2790,
+          3,
+          75
+        ],
+        "max": [
+          2840,
+          51,
+          76
+        ]
+      },
+      "gives": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 5,
+        "weapon_rpg": 1,
+        "ammo_rpgclip": 5,
+        "weapon_snark": 2,
+        "weapon_satchel": 5,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "weapon_egon": 1,
+        "weapon_357": 1,
+        "ammo_357": 4,
+        "weapon_crossbow": 1,
+        "ammo_crossbow": 5,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 6,
+        "weapon_tripmine": 5,
+        "weapon_handgrenade": 2,
+        "weapon_9mmAR_grenades": 1,
+        "ammo_ARgrenades": 5,
+        "weapon_gauss": 1,
+        "ammo_gaussclip": 3,
+        "weapon_hornetgun": 1
+      },
+      "health": null,
+      "armor": 100
+    },
+    {
+      "name": "Gonarch's Lair",
+      "first": "c4a2",
+      "endMap": "c4a1a",
+      "legacy": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 1,
+        "ammo_9mm": 6,
+        "weapon_357": 1,
+        "weapon_satchel": 4,
+        "item_battery": 5,
+        "ammo_357": 2,
+        "weapon_tripmine": 5,
+        "weapon_gauss": 1,
+        "ammo_gaussclip": 4,
+        "weapon_shotgun": 1,
+        "weapon_rpg": 1,
+        "ammo_rpgclip": 5,
+        "ammo_buckshot": 5,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "ammo_ARgrenades": 3,
+        "weapon_handgrenade": 2,
+        "weapon_crossbow": 1,
+        "ammo_crossbow": 3,
+        "weapon_hornetgun": 1,
+        "weapon_snark": 3,
+        "weapon_egon": 1,
+        "item_longjump": 1
+      },
+      "save": "GON-IL",
+      "start": {
+        "min": [
+          2743,
+          -52.6,
+          0
+        ],
+        "max": [
+          2898.1,
+          92.8,
+          75
+        ]
+      },
+      "stop": {
+        "min": [
+          -224.58,
+          -844.383,
+          235.254
+        ],
+        "max": [
+          -75.5315,
+          -728.309,
+          250.031
+        ]
+      },
+      "gives": {
+        "item_suit": 1,
+        "weapon_glock": 5,
+        "weapon_snark": 2,
+        "weapon_rpg": 1,
+        "ammo_rpgclip": 5,
+        "weapon_satchel": 5,
+        "weapon_egon": 1,
+        "weapon_crossbow": 1,
+        "ammo_crossbow": 5,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 6,
+        "weapon_tripmine": 5,
+        "weapon_handgrenade": 2,
+        "weapon_9mmAR_grenades": 1,
+        "ammo_ARgrenades": 5,
+        "weapon_gauss": 1,
+        "ammo_gaussclip": 3,
+        "weapon_hornetgun": 1,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "weapon_357": 1,
+        "ammo_357": 4
+      },
+      "health": null,
+      "armor": 100
+    },
+    {
+      "name": "Interloper",
+      "first": "c4a1a",
+      "endMap": "c4a3",
+      "legacy": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 1,
+        "ammo_9mm": 6,
+        "weapon_357": 1,
+        "weapon_satchel": 4,
+        "item_battery": 5,
+        "ammo_357": 2,
+        "weapon_tripmine": 5,
+        "weapon_gauss": 1,
+        "ammo_gaussclip": 4,
+        "weapon_shotgun": 1,
+        "weapon_rpg": 1,
+        "ammo_rpgclip": 5,
+        "ammo_buckshot": 5,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "ammo_ARgrenades": 3,
+        "weapon_handgrenade": 2,
+        "weapon_crossbow": 1,
+        "ammo_crossbow": 3,
+        "weapon_hornetgun": 1,
+        "weapon_snark": 3,
+        "weapon_egon": 1,
+        "item_longjump": 1
+      },
+      "save": "INT-IL",
+      "start": {
+        "min": [
+          -224.58,
+          -844.383,
+          235.254
+        ],
+        "max": [
+          -75.5315,
+          -728.309,
+          250.031
+        ]
+      },
+      "stop": {
+        "min": [
+          2996.99,
+          -1707.3,
+          -707.969
+        ],
+        "max": [
+          3107.886,
+          -1604,
+          -653.969
+        ]
+      },
+      "gives": {
+        "item_suit": 1,
+        "weapon_glock": 5,
+        "weapon_snark": 2,
+        "weapon_rpg": 1,
+        "ammo_rpgclip": 5,
+        "weapon_satchel": 5,
+        "weapon_egon": 1,
+        "weapon_crossbow": 1,
+        "ammo_crossbow": 5,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 6,
+        "weapon_tripmine": 5,
+        "weapon_handgrenade": 2,
+        "weapon_9mmAR_grenades": 1,
+        "ammo_ARgrenades": 5,
+        "weapon_gauss": 1,
+        "ammo_gaussclip": 3,
+        "weapon_hornetgun": 1,
+        "weapon_357": 1,
+        "ammo_357": 4,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4
+      },
+      "health": null,
+      "armor": 100
+    },
+    {
+      "name": "Nihilanth",
+      "first": "c4a3",
+      "legacy": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 1,
+        "ammo_9mm": 6,
+        "weapon_357": 1,
+        "weapon_satchel": 4,
+        "item_battery": 5,
+        "ammo_357": 2,
+        "weapon_tripmine": 5,
+        "weapon_gauss": 1,
+        "ammo_gaussclip": 4,
+        "weapon_shotgun": 1,
+        "weapon_rpg": 1,
+        "ammo_rpgclip": 5,
+        "ammo_buckshot": 5,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "ammo_ARgrenades": 3,
+        "weapon_handgrenade": 2,
+        "weapon_crossbow": 1,
+        "ammo_crossbow": 3,
+        "weapon_hornetgun": 1,
+        "weapon_snark": 3,
+        "weapon_egon": 1,
+        "item_longjump": 1
+      },
+      "save": "NIH-IL",
+      "start": {
+        "min": [
+          2996.99,
+          -1707.3,
+          -707.969
+        ],
+        "max": [
+          3107.886,
+          -1604,
+          -653.969
+        ]
+      },
+      "gives": {
+        "item_suit": 1,
+        "weapon_crowbar": 1,
+        "weapon_glock": 5,
+        "weapon_snark": 2,
+        "weapon_rpg": 1,
+        "ammo_rpgclip": 5,
+        "weapon_satchel": 5,
+        "weapon_crossbow": 1,
+        "ammo_crossbow": 5,
+        "weapon_shotgun": 1,
+        "ammo_buckshot": 6,
+        "weapon_tripmine": 5,
+        "weapon_handgrenade": 2,
+        "weapon_9mmAR_grenades": 1,
+        "ammo_ARgrenades": 5,
+        "weapon_gauss": 1,
+        "ammo_gaussclip": 3,
+        "weapon_hornetgun": 1,
+        "weapon_357": 1,
+        "ammo_357": 4,
+        "weapon_9mmAR": 1,
+        "ammo_9mmAR": 4,
+        "weapon_egon": 1
+      },
+      "health": null,
+      "armor": 100
+    }
+  ]
+}

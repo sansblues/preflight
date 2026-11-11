@@ -78,18 +78,17 @@ await check('phone', 'light', async page => {
 }, 375);
 
 await check('individual-level', 'dark', async page => {
-  await pick(page, 'Choose folder', join(gauntlet, 'individual-level'));
+  await pick(page, 'Choose folder', join(gauntlet, 'blast-pit'));
   await page.locator('.verdict').waitFor();
-  expect((await text(page, '.verdict')) === 'Individual levels aren\'t supported yet', 'individual level: says so');
-  expect((await page.locator('.cards').count()) === 0, 'individual level: no findings shown');
+  expect((await text(page, '.verdict')) === 'Ready to submit', `individual level: verdict "${await text(page, '.verdict')}"`);
+  expect((await text(page, '.summary p')).startsWith('3:53.138 · 2 demos · Blast Pit'), `individual level: "${await text(page, '.summary p')}"`);
 });
 
 await check('zip', 'light', async page => {
   await pick(page, 'Choose files', join(fixtures, 'run.zip'));
   await page.locator('.verdict').waitFor();
   const facts = await text(page, '.summary p');
-  expect(facts.includes('· 12 demos · c1a0 to'), `zip: ${facts}`);
-  expect(facts.startsWith('5:28.936'), `zip: time ${facts}`);
+  expect(facts.startsWith('5:05.298 · 12 demos · Anomalous Materials'), `zip: ${facts}`);
   expect(!requests.some(u => u.includes('7zz')), 'zip: 7-Zip not loaded');
 });
 

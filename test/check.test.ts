@@ -96,13 +96,39 @@ test('a run needs a continuous timer from zero', () => {
 });
 
 test('recognizes individual-level runs', () => {
-  const r = checkRun(runs['individual-level']);
-  assert.equal(r.individualLevel, true);
-  assert.ok(!r.findings.some(f => f.kind === 'timer-start' || f.kind === 'no-game-end'));
-  assert.equal(checkRun(runs.scriptless).individualLevel, false); // A stray bxt_timer_start in a run that ends the game.
-  const configured = checkRun(runs['individual-level-config']);
-  assert.equal(configured.individualLevel, true);
-  assert.deepEqual(configured.findings.map(f => f.kind), ['game-end']); // Its demo numbers needn't start at 1.
+  const unofficial = checkRun(runs['individual-level']);
+  assert.deepEqual(unofficial.individualLevel, {});
+  assert.ok(lines(runs['individual-level']).includes('problem setup The run doesn\'t start at the config\'s trigger. @ IL_1.dem'));
+  assert.ok(!unofficial.findings.some(f => f.kind === 'timer-start' || f.kind === 'no-game-end'));
+  assert.equal(checkRun(runs.scriptless).individualLevel, undefined); // A stray bxt_timer_start in a run that ends the game.
+  const hazard = checkRun(runs['individual-level-config']);
+  assert.deepEqual(hazard.individualLevel, { chapter: 'Hazard Course' });
+  assert.deepEqual(hazard.findings.map(f => f.kind), ['game-end']); // Its demo numbers needn't start at 1, and the game disconnects itself.
+});
+
+test('checks an individual level against the official config', () => {
+  const r = checkRun(runs['blast-pit']);
+  assert.deepEqual(r.individualLevel, { chapter: 'Blast Pit' });
+  assert.equal(formatTime(r.time!), '3:53.138'); // At the stop trigger.
+  assert.deepEqual(r.findings.filter(f => f.severity !== 'info'), []);
+  assert.deepEqual(lines(runs['blast-pit-tampered']).filter(l => !l.startsWith('info')), [
+    'problem no-level-end  @ BP-IL_2.dem',
+    'problem setup It gives weapon_handgrenade 3 times, and the config only 2. @ BP-IL_1.dem',
+    'problem setup It gives weapon_rpg, which the config doesn\'t. @ BP-IL_1.dem',
+    'problem setup It sets health to 200, and the config allows up to 100. @ BP-IL_1.dem',
+    'problem setup It runs impulse 101, which the config doesn\'t. @ BP-IL_1.dem',
+    'problem setup Cheats are still on when the run starts. @ BP-IL_1.dem',
+    'problem setup The run stops at a trigger that isn\'t the config\'s. @ BP-IL_2.dem',
+    'problem bxt-command bxt_timer_stop @ BP-IL_2.dem',
+  ]);
+});
+
+test('checks the legacy setup against its config', () => {
+  const r = checkRun(runs.legacy);
+  assert.deepEqual(r.individualLevel, { chapter: 'Blast Pit' });
+  assert.equal(formatTime(r.time!), '2:30.250'); // On the changelevel into Power Up.
+  assert.deepEqual(lines(runs.legacy).filter(l => !l.startsWith('info')), ['check naming IL.dem @ IL.dem']);
+  assert.deepEqual(lines(runs['legacy-tampered']).filter(l => l.includes(' setup ')), ['problem setup It sets health to 100, which the config doesn\'t. @ IL.dem']);
 });
 
 test('the mode can be overridden', () => {
