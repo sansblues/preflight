@@ -22,7 +22,7 @@ test('extracts a .7z', async () => {
 });
 
 test('explains archives it can\'t open', async () => {
-  await assert.rejects(extract(await sevenZip('secret'), 'run.7z'), { message: 'run.7z is password-protected. Extract it and drop the folder instead.' });
-  await assert.rejects(extract(new Blob([demo]), 'run.rar'), { message: 'run.rar can\'t be opened. It may be damaged.' });
+  await assert.rejects(extract(await sevenZip('secret'), 'run.7z'), { message: 'run.7z has a password. Extract it and drop the folder.' });
+  await assert.rejects(extract(new Blob([demo]), 'run.rar'), { message: 'Can\'t open run.rar. It may be damaged.' });
   process.exitCode = 0; // 7-Zip's Node build reports its last error as the exit code.
 });

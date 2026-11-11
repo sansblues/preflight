@@ -38,8 +38,8 @@ async function read(files: { name: string; file: File }[]): Promise<Input[]> {
   if (!sources.length) {
     const archive = other.find(n => /\.(tar|gz|tgz|bz2|xz|zst)$/i.test(n));
     throw new Error(archive
-      ? `Preflight can't open ${archive.split('/').pop()}. Extract it and drop the folder instead.`
-      : 'No demos found. Drop .dem files, a folder with them, or a .zip, .7z or .rar.');
+      ? `Can't open ${archive.split('/').pop()}. Extract it and drop the folder.`
+      : 'No demos found. Drop .dem files, a folder, or a .zip, .7z or .rar.');
   }
 
   // Shorten "runs/any%/run_1.dem" to "run_1.dem" when all demos share the folder.

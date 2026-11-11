@@ -46,7 +46,7 @@ test('recovers a demo without a directory', () => {
   new DataView(unfinished.buffer).setInt32(540, 0, true);
   const { error, header, recovered, ...rest } = parseDemo(unfinished);
   const { error: _, header: __, ...expected } = parseDemo(file);
-  assert.match(error!, /no directory/);
+  assert.match(error!, /didn't finish/);
   assert.equal(recovered, true);
   assert.deepEqual(rest, expected);
 });
@@ -56,15 +56,15 @@ test('reads a cut-off demo up to its last complete frame', () => {
   new DataView(unfinished.buffer).setInt32(540, 0, true);
   // Cut in the middle of the last network frame, which is followed by the next-section frame.
   const d = parseDemo(unfinished.subarray(0, parseDemo(file).header.directoryOffset - 9 - 200));
-  assert.match(d.error!, /no directory/);
+  assert.match(d.error!, /didn't finish/);
   assert.deepEqual(d.entries.map(e => [e.description, e.trackTime, e.frameCount]), [['LOADING', 0, 0], ['Playback', 2.5, 2]]);
   assert.equal(d.bxt.length, 2);
 });
 
 test('reports broken files instead of throwing', () => {
-  assert.equal(parseDemo(new Uint8Array()).error, 'This is not a GoldSrc demo.');
-  assert.equal(parseDemo(new TextEncoder().encode('PK\x03\x04')).error, 'This is not a GoldSrc demo.');
-  assert.equal(parseDemo(file.subarray(0, 100)).error, 'The file is too short to be a demo.');
+  assert.equal(parseDemo(new Uint8Array()).error, 'This isn\'t a Half-Life demo.');
+  assert.equal(parseDemo(new TextEncoder().encode('PK\x03\x04')).error, 'This isn\'t a Half-Life demo.');
+  assert.equal(parseDemo(file.subarray(0, 100)).error, 'This file is too short to be a demo.');
 
   const protocol = file.slice();
   new DataView(protocol.buffer).setInt32(8, 4, true);
@@ -75,5 +75,5 @@ test('reports broken files instead of throwing', () => {
   const view = new DataView(damaged.buffer);
   const dir = view.getInt32(540, true);
   view.setInt32(dir + 4 + 92 + 84, damaged.length - 20, true);
-  assert.match(parseDemo(damaged).error!, /Playback section ends unexpectedly/);
+  assert.match(parseDemo(damaged).error!, /Playback part ends early/);
 });

@@ -202,8 +202,8 @@ export function parseDemo(file: Uint8Array): Demo {
   };
 
   try {
-    if (text(0, 4) === 'IDEM') throw new Broken('This demo was recorded with Xash3D. Runs must be recorded on GoldSrc, with BXT.');
-    if (text(0, 8) !== 'HLDEMO' || file[7] !== 0) throw new Broken('This is not a GoldSrc demo.');
+    if (text(0, 4) === 'IDEM') throw new Broken('This demo is from Xash3D. Runs have to be recorded in GoldSrc with BXT.');
+    if (text(0, 8) !== 'HLDEMO' || file[7] !== 0) throw new Broken('This isn\'t a Half-Life demo.');
     need(0, 544);
     const h = demo.header;
     h.demoProtocol = view.getInt32(8, true);
@@ -212,7 +212,7 @@ export function parseDemo(file: Uint8Array): Demo {
     h.gameDir = text(276, 260);
     h.mapCrc = view.getUint32(536, true);
     h.directoryOffset = view.getInt32(540, true);
-    if (h.demoProtocol !== 5) throw new Broken(`This demo uses protocol ${h.demoProtocol}, but only protocol 5 is supported.`);
+    if (h.demoProtocol !== 5) throw new Broken(`This demo uses protocol ${h.demoProtocol}, which isn't supported.`);
 
     const dir = h.directoryOffset;
     const count = dir >= 544 && dir + 4 <= file.length ? view.getInt32(dir, true) : -1;
@@ -234,7 +234,7 @@ export function parseDemo(file: Uint8Array): Demo {
       try {
         readEntry({ end: entry.offset, lastTime: 0, netFrames: 0 });
       } catch (e) {
-        if (e instanceof Broken && !e.message) throw new Broken(`The demo is damaged: its ${entry.description || `entry ${i + 1}`} section ends unexpectedly.`);
+        if (e instanceof Broken && !e.message) throw new Broken(`This demo is damaged: its ${entry.description || `entry ${i + 1}`} part ends early.`);
         throw e;
       }
       flush();
@@ -242,7 +242,7 @@ export function parseDemo(file: Uint8Array): Demo {
   } catch (e) {
     if (!(e instanceof Broken)) throw e;
     flush();
-    demo.error = e.message || 'The file is too short to be a demo.';
+    demo.error = e.message || 'This file is too short to be a demo.';
   }
   return demo;
 
@@ -250,7 +250,7 @@ export function parseDemo(file: Uint8Array): Demo {
   // Recorded demos always have a LOADING entry with no time or frames, then Playback.
   function recover(): Demo {
     demo.recovered = true;
-    demo.error = 'The demo has no directory: its recording didn\'t finish, or the file is cut off. It was read up to its last complete frame.';
+    demo.error = 'The recording didn\'t finish, or the file is cut off. It was read up to its last complete frame.';
     for (let at = 544; at < file.length && demo.entries.length < 2; ) {
       const loading = demo.entries.length === 0;
       const seg = { end: at, lastTime: 0, netFrames: 0 };

@@ -1,4 +1,4 @@
-import { clock, formatTime, Kinds, type Finding, type Report, type Severity, type Where } from './check.ts';
+import { clock, formatTime, Kinds, recorded, title, type Finding, type Report, type Where } from './check.ts';
 import type { Progress, Reply, Request } from './worker.ts';
 
 type Child = Node | string | false | null | undefined;
@@ -36,102 +36,115 @@ function start(files: Picked[]) {
 
 const send = (request: Request) => worker!.postMessage(request);
 
+// The λ in Half-Life orange, drawn as two strokes.
+const Lambda = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3.5h3l10.5 17M12.4 10.6L5.5 20.5" fill="none" stroke="#f68c1e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const Title = 'Review your Half-Life run';
+
+function mark() {
+  const span = h('span', { class: 'mark' });
+  span.innerHTML = Lambda;
+  return span;
+}
+
 function idle(error?: string) {
   const pick = (folder: boolean) => {
-    const input = h('input', { type: 'file', multiple: true, ...(folder ? { webkitdirectory: true } : { accept: '.dem,.zip' }) }) as HTMLInputElement;
+    const input = h('input', { type: 'file', multiple: true, ...(folder ? { webkitdirectory: true } : { accept: '.dem,.zip,.7z,.rar' }) }) as HTMLInputElement;
     input.onchange = () => start([...input.files!].map(file => ({ name: file.webkitRelativePath || file.name, file })));
     input.click();
   };
   render(
+    h('h1', { class: 'title' }, mark(), Title),
+    h('p', { class: 'lede' }, 'Catch what the moderators look for before you submit. Your demos stay on your computer.'),
     h('section', { class: 'drop' },
-      h('p', { class: 'drop-title' }, 'Drop your run\'s demos here'),
-      h('p', {}, 'Demo files, a folder or a zip.'),
-      h('p', { class: 'actions' },
+      h('p', { class: 'drop-title' }, 'Drop your demos here'),
+      h('p', {}, 'Files, a folder, or a .zip, .7z or .rar'),
+      h('div', { class: 'actions' },
         h('button', { class: 'primary', click: () => pick(false) }, 'Choose files'),
-        h('button', { click: () => pick(true) }, 'Choose a folder')),
-      error && h('p', { class: 'error', role: 'alert' }, error)),
+        h('button', { click: () => pick(true) }, 'Choose folder'))),
+    error && h('p', { class: 'error', role: 'alert' }, error),
   );
 }
 
 function progress({ text, done, total }: Progress) {
   render(
+    bar(false),
     h('section', { class: 'progress', 'aria-live': 'polite' },
       h('p', {}, text),
       h('progress', total ? { value: String(done), max: String(total) } : {}),
-      h('p', { class: 'muted' }, total ? `${done} of ${plural(total, 'demo')}` : '')),
+      h('p', { class: 'count' }, total ? `${done} of ${total}` : '')),
   );
 }
+
+function bar(newRun: boolean) {
+  return h('header', { class: 'bar' },
+    h('button', { class: 'home', click: () => idle() }, mark(), Title),
+    newRun && h('button', { click: () => idle() }, 'New run'));
+}
+
+const Modes = { scriptless: 'Scriptless', scripted: 'Scripted' } as const;
 
 function report(r: Report) {
-  const count = (s: Severity) => r.findings.filter(f => f.severity === s).length;
-  const problems = count('problem'), checks = count('check');
-  const individual = r.individualLevel;
-  const verdict = individual ? 'Individual-level run'
-    : problems && checks ? `${plural(problems, 'problem')} and ${plural(checks, 'thing')} to check`
-    : problems ? plural(problems, 'problem')
-    : checks ? `No problems, but ${plural(checks, 'thing')} to check`
-    : 'No problems found';
+  const findings = r.findings.filter(f => f.severity !== 'info');
+  const [verdict, tone] = r.individualLevel ? ['Individual levels aren\'t supported yet', 'info']
+    : findings.some(f => recorded(f.kind)) ? ['Invalid run', 'problem']
+    : findings.some(f => f.severity === 'problem') ? ['Not ready to submit', 'problem']
+    : ['Ready to submit', 'good'];
   const last = r.demos[r.demos.length - 1];
   const maps = [...new Set([r.demos[0]?.map, last?.map])].filter(Boolean).join(' to ');
-  const other = r.mode === 'scriptless' ? 'scripted' : 'scriptless';
-  const name = (m: string) => (m === 'scriptless' ? 'Scriptless' : 'scripted');
+  const retime = r.findings.find(f => f.kind === 'blue-shift')?.subject.split(' (')[0];
 
   render(
-    h('section', { class: 'summary', 'aria-live': 'polite' },
-      h('p', { class: 'label' }, 'BXT time'),
-      h('p', { class: 'time' }, r.time ? formatTime(r.time) : 'No time'),
-      last?.error && r.time && h('p', { class: 'muted' }, 'The last demo is unfinished, so this time is only accurate to the second.'),
-      h('p', { class: 'verdict', 'data-severity': individual ? 'info' : problems ? 'problem' : checks ? 'check' : 'good' }, verdict),
-      individual && h('p', { class: 'notice' }, 'Preflight only knows the full-game rules, which forbid setup that individual levels allow, like sv_cheats 1 before the timer starts. The moderators check individual levels by their own rules.'),
-      h('p', { class: 'facts' },
-        [plural(r.demos.length, 'demo'), maps, `checked as ${name(r.mode)}${r.mode === r.detectedMode ? '' : ` (detected ${name(r.detectedMode)})`}`].filter(Boolean).join(' · '),
-        ' ', h('button', { class: 'link', click: () => send({ mode: other }) }, `Check as ${name(other)}`))),
-    ...(individual && r.findings.length
-      ? [h('details', { class: 'full-game' }, h('summary', {}, `What the full-game rules flag (${r.findings.length})`), ...present(sections(r.findings)))]
-      : sections(r.findings)),
-    h('section', {},
-      h('h2', {}, 'About this run'),
-      h('dl', {},
-        h('dt', {}, 'Frame rate'), h('dd', {}, `${r.fps.average.toFixed(1)} fps on average, from ${r.fps.lowest.toFixed(1)} to ${r.fps.highest.toFixed(1)}`),
-        h('dt', {}, 'Demo length'), h('dd', {}, clock(r.demoTime, 2)),
-        h('dt', {}, 'Required BXT'), h('dd', {}, h('code', {}, r.rules.bxtVersion)),
-        h('dt', {}, 'Rules'), h('dd', {}, `VolvoWrench, ${new Date(r.rules.source.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`))),
-    h('p', { class: 'actions' }, h('button', { class: 'primary', click: () => idle() }, 'Check another run')),
+    bar(true),
+    h('div', { class: 'report' },
+      h('h1', { class: 'verdict', 'data-severity': tone, 'aria-live': 'polite' }, verdict),
+      h('div', { class: 'summary' },
+        h('p', {}, [r.time && formatTime(r.time), plural(r.demos.length, 'demo'), maps, retime && `retimed ${retime}`, r.fps.highest && `${Math.round(r.fps.highest)} fps`].filter(Boolean).join(' · ')),
+        !r.individualLevel && h('div', { class: 'toggle', role: 'group', 'aria-label': 'Rules' }, ...(['scriptless', 'scripted'] as const).map(m =>
+          h('button', { 'aria-pressed': String(r.mode === m), click: () => r.mode !== m && send({ mode: m }) }, Modes[m])))),
+      !r.individualLevel && cards(findings)),
   );
 }
 
-function sections(findings: Finding[]) {
+// Missing demos come as ranges; everything else counts its items.
+const count = (items: Finding[]) =>
+  items.reduce((n, f) => n + (f.kind === 'missing' ? Number(/\((\d+) demos\)/.exec(f.subject)?.[1] ?? 1) : 1), 0);
+
+function cards(list: Finding[]) {
+  // Problems recorded in the demos come first: they're why a run is invalid.
+  const groups = [...Map.groupBy(list, f => f.kind)].sort(([a], [b]) => Number(recorded(b)) - Number(recorded(a)));
+  return list.length > 0 && h('ul', { class: 'cards' }, ...groups.map(([kind, items]) =>
+    h('li', { class: 'card', 'data-severity': items[0].severity },
+      h('h2', {}, title(kind, count(items))),
+      Kinds[kind].fix && h('p', { class: 'fix' }, Kinds[kind].fix),
+      ...listed(items))));
+}
+
+// Long lists show their first few items; the rest are one click away.
+function listed(items: Finding[]) {
+  const item = (f: Finding) => h('li', {}, subject(f), places(f.where.filter(w => !f.subject.includes(w.demo))));
+  const [first, rest] = items.length > 6 ? [items.slice(0, 5), items.slice(5)] : [items, []];
   return [
-    section('Problems', findings.filter(f => f.severity === 'problem')),
-    section('To check', findings.filter(f => f.severity === 'check')),
-    section('Notes', findings.filter(f => f.severity === 'info')),
+    h('ul', { class: 'items' }, ...first.map(item)),
+    rest.length > 0 && h('details', { class: 'more' }, h('summary', {}, `Show ${rest.length} more`), h('ul', { class: 'items' }, ...rest.map(item))),
   ];
 }
 
-function section(title: string, findings: Finding[]) {
-  const kinds = Map.groupBy(findings, f => f.kind);
-  return findings.length > 0 && h('section', {},
-    h('h2', {}, title, h('span', { class: 'count' }, String(findings.length))),
-    h('ul', { class: 'findings' }, ...[...kinds].map(([kind, items]) => h('li', { 'data-severity': items[0].severity },
-      h('h3', {}, Kinds[kind].title),
-      Kinds[kind].fix && h('p', { class: 'muted' }, Kinds[kind].fix),
-      h('ul', { class: 'items' }, ...items.map(f => h('li', {}, subject(f), places(f.where.filter(w => w.demo !== f.subject)))))))));
-}
+const Sentences = ['broken', 'timer-start', 'timer-jump'];
 
 function subject(f: Finding) {
   if (!f.subject) return null;
-  return f.kind === 'broken' || f.kind === 'unfinished' ? h('p', {}, f.subject) : h('code', {}, f.subject);
+  return Sentences.includes(f.kind) ? h('p', { class: 'subject' }, f.subject) : h('code', {}, f.subject);
 }
 
 function places(where: Where[]) {
   if (!where.length) return null;
-  const place = (w: Where) => (w.time === undefined ? w.demo : `${w.demo} at ${clock(w.time, 2)}`);
+  // A time at the very start of a demo adds nothing.
+  const place = (w: Where) => (w.time === undefined || w.time < 0.01 ? w.demo : `${w.demo} at ${clock(w.time, 2)}`);
   if (where.length === 1) return h('p', { class: 'where' }, place(where[0]));
-  const shown = where.slice(0, 500);
+  const demos = new Set(where.map(w => w.demo));
   return h('details', { class: 'where' },
-    h('summary', {}, `${place(where[0])} and ${where.length - 1} more`),
-    h('ul', {}, ...shown.map(w => h('li', {}, place(w)))),
-    where.length > shown.length && h('p', {}, `and ${where.length - shown.length} more`));
+    h('summary', {}, demos.size === 1 ? `In ${where[0].demo}` : `In ${demos.size} demos`),
+    h('ul', {}, ...where.map(w => h('li', {}, place(w)))));
 }
 
 // Folders dropped onto the page are walked with the entry API; the entries must be taken before any await.

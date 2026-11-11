@@ -18,7 +18,8 @@ test('scriptless gauntlet', () => {
   // Checked against VolvoWrench itself with tools/check-diff.ts.
   assert.deepEqual(lines(runs.scriptless), [
     'problem missing run_3.dem @ run_3.dem',
-    'problem timer-jump 1:10.000 at the end of run_2.dem, 1:20.000 at the start of run_4.dem @ run_4.dem', // run_3 is missing.
+    'problem timer-jump 1:10.000 at the end of run_2.dem, then 1:20.000 at the start of run_4.dem @ run_4.dem', // run_3 is missing.
+    'problem load-unseen load hard @ run_2.dem', // run_3 is missing, so it may be there.
     'problem no-bxt  @ run_6.dem',
     'problem bxt-version cbc496b @ run_1.dem',
     'problem cvar bxt_fire_on_button_command "x" (must be empty) @ run_1.dem',
@@ -43,10 +44,10 @@ test('scriptless gauntlet', () => {
     'problem disallowed sk_plr_9mm_bullet1 99 @ run_1.dem',
     'problem disallowed skill 3 @ run_1.dem',
     'problem cust cust_99 @ run_1.dem',
-    'problem load-unknown load hard @ run_2.dem',
     'problem report-to-demo report_to_demo 1 @ run_1.dem',
-    'check physics gravity is 400 (normally 800) @ run_1.dem run_1.dem',
-    'check physics airaccelerate is 100 (normally 10) @ run_1.dem',
+    'check cvar-format lookstrafe "0" (must be "0.000000") @ run_1.dem',
+    'check physics gravity 400 (must be 800) @ run_1.dem run_1.dem',
+    'check physics airaccelerate 100 (must be 10) @ run_1.dem',
     'check probably-disallowed cl_pitchdown 90 @ run_1.dem',
     'check probably-disallowed r_drawviewmodel 0 @ run_1.dem',
     'check probably-disallowed gl_clear 1 @ run_1.dem',
@@ -58,7 +59,6 @@ test('scriptless gauntlet', () => {
     'check autojump -jump @ run_1.dem',
     'check ducktap +duck @ run_1.dem',
     'check ducktap -duck @ run_1.dem', // Pressed in another frame.
-    'info cvar-format lookstrafe "0" (must be "0.000000") @ run_1.dem',
     'info load load autosave @ run_1.dem',
     'info load load quick @ run_2.dem',
     'info config userconfig.cfg @ run_1.dem',
@@ -86,9 +86,9 @@ test('a run needs a continuous timer from zero', () => {
   const timer = (inputs: Input[]) => lines(inputs).filter(l => l.includes(' timer-'));
   assert.deepEqual(timer([{ name: 'run_1.dem', demo: a }, { name: 'run_2.dem', demo: b }]), []);
   assert.deepEqual(timer([{ name: 'run_1.dem', demo: b }]), []); // 1 second in: within the margin.
-  assert.deepEqual(timer([{ name: 'run_1.dem', demo: runs.scriptless[1].demo }]), ['problem timer-start 1:02.000 when run_1.dem starts @ run_1.dem']);
+  assert.deepEqual(timer([{ name: 'run_1.dem', demo: runs.scriptless[1].demo }]), ['problem timer-start 1:02.000 at the start of run_1.dem @ run_1.dem']);
   assert.deepEqual(timer([{ name: 'run_1.dem', demo: b }, { name: 'run_2.dem', demo: a }]), [
-    'problem timer-jump 0:05.000 at the end of run_1.dem, 0:00.030 at the start of run_2.dem @ run_2.dem',
+    'problem timer-jump 0:05.000 at the end of run_1.dem, then 0:00.030 at the start of run_2.dem @ run_2.dem',
   ]);
 });
 

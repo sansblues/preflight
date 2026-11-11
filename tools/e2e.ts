@@ -51,45 +51,45 @@ async function drop(page: Page, files: string[]) {
 }
 
 await check('idle', 'light', async page => {
-  expect(await page.getByText('Drop your run\'s demos here').isVisible(), 'idle: drop zone shows');
+  expect(await page.getByText('Drop your demos here').isVisible(), 'idle: drop zone shows');
 });
 await check('idle', 'dark', async () => {});
 
 for (const scheme of ['light', 'dark'] as const) {
   await check('gauntlet', scheme, async page => {
-    await pick(page, 'Choose a folder', join(gauntlet, 'scriptless'));
+    await pick(page, 'Choose folder', join(gauntlet, 'scriptless'));
     await page.locator('.verdict').waitFor();
-    expect((await text(page, '.verdict')) === '28 problems and 13 things to check', `gauntlet: verdict "${await text(page, '.verdict')}"`);
-    expect((await text(page, '.time')) === '2:00.000', 'gauntlet: time');
-    expect((await page.locator('.items > li').count()) === 50, 'gauntlet: 50 findings');
+    expect((await text(page, '.verdict')) === 'Invalid run', `gauntlet: verdict "${await text(page, '.verdict')}"`);
+    expect((await text(page, '.summary p')).startsWith('2:00.000 · 5 demos'), 'gauntlet: time');
+    expect((await page.locator('.items > li').count()) === 42, 'gauntlet: 42 findings');
   });
 }
 
 await check('drop', 'light', async page => {
   await drop(page, [join(gauntlet, 'scripted'), join(fixtures, 'run.zip')]);
   await page.locator('.verdict').waitFor();
-  expect((await text(page, '.facts')).startsWith('14 demos'), `drop: a folder and a zip, ${await text(page, '.facts')}`);
+  expect((await text(page, '.summary p')).includes('14 demos'), `drop: a folder and a zip, ${await text(page, '.summary p')}`);
 });
 
 await check('phone', 'light', async page => {
-  await pick(page, 'Choose a folder', join(gauntlet, 'scriptless'));
+  await pick(page, 'Choose folder', join(gauntlet, 'scriptless'));
   await page.locator('.verdict').waitFor();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'phone: no sideways scroll');
 }, 375);
 
 await check('individual-level', 'dark', async page => {
-  await pick(page, 'Choose a folder', join(gauntlet, 'individual-level'));
+  await pick(page, 'Choose folder', join(gauntlet, 'individual-level'));
   await page.locator('.verdict').waitFor();
-  expect((await text(page, '.verdict')) === 'Individual-level run', 'individual level: neutral verdict');
-  expect(!(await page.locator('.findings').first().isVisible()), 'individual level: full-game findings collapsed');
+  expect((await text(page, '.verdict')) === 'Individual levels aren\'t supported yet', 'individual level: says so');
+  expect((await page.locator('.cards').count()) === 0, 'individual level: no findings shown');
 });
 
 await check('zip', 'light', async page => {
   await pick(page, 'Choose files', join(fixtures, 'run.zip'));
   await page.locator('.verdict').waitFor();
-  const facts = await text(page, '.facts');
-  expect(facts.startsWith('12 demos · c1a0 to'), `zip: ${facts}`);
-  expect((await text(page, '.time')) === '5:28.936', `zip: time ${await text(page, '.time')}`);
+  const facts = await text(page, '.summary p');
+  expect(facts.includes('· 12 demos · c1a0 to'), `zip: ${facts}`);
+  expect(facts.startsWith('5:28.936'), `zip: time ${facts}`);
   expect(!requests.some(u => u.includes('7zz')), 'zip: 7-Zip not loaded');
 });
 
@@ -97,26 +97,26 @@ for (const archive of ['run.7z', 'run.rar']) {
   await check(archive.replace('.', '-'), 'light', async page => {
     await pick(page, 'Choose files', join(fixtures, archive));
     await page.locator('.verdict').waitFor();
-    expect((await text(page, '.facts')).startsWith(archive.endsWith('7z') ? '1 demo' : '7 demos'), `${archive}: ${await text(page, '.facts')}`);
+    expect((await text(page, '.summary p')).includes(archive.endsWith('7z') ? '· 1 demo ·' : '· 7 demos ·'), `${archive}: ${await text(page, '.summary p')}`);
     expect(requests.some(u => u.endsWith('.wasm')), `${archive}: 7-Zip loaded on demand`);
   });
 }
 
 await check('big', 'dark', async page => {
   const t0 = Date.now();
-  await pick(page, 'Choose a folder', join(demos, '2026-11-09 18.22.45 run'));
+  await pick(page, 'Choose folder', join(demos, '2026-11-09 18.22.45 run'));
   await page.locator('.verdict').waitFor({ timeout: 60_000 });
   const seconds = (Date.now() - t0) / 1000;
-  expect((await text(page, '.facts')).startsWith('448 demos'), `big: 448 demos in ${seconds.toFixed(1)} s`);
-  await page.getByRole('button', { name: 'Check as scripted' }).click();
-  await page.getByText('checked as scripted (detected Scriptless)').waitFor();
+  expect((await text(page, '.summary p')).includes('448 demos'), `big: 448 demos in ${seconds.toFixed(1)} s`);
+  await page.getByRole('button', { name: 'Scripted', exact: true }).click();
+  await page.locator('.toggle button[aria-pressed="true"]', { hasText: 'Scripted' }).waitFor();
   expect(true, 'big: mode switch');
 });
 
 await check('damaged', 'light', async page => {
   await pick(page, 'Choose files', join(fixtures, 'notes.rar'));
   await page.getByRole('alert').waitFor();
-  expect((await text(page, '[role=alert]')) === 'notes.rar can\'t be opened. It may be damaged.', 'damaged archive: clear error');
+  expect((await text(page, '[role=alert]')) === 'Can\'t open notes.rar. It may be damaged.', 'damaged archive: clear error');
 });
 
 await browser.close();

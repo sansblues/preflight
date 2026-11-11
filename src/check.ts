@@ -26,51 +26,59 @@ export type Report = {
   /** The BXT timer at the end of the last demo. */
   time?: Time;
   findings: Finding[];
-  fps: { highest: number; lowest: number; average: number };
-  /** Seconds of demo playback, summed over the demos. */
-  demoTime: number;
+  fps: { highest: number };
   /** Detected from where and how the timer starts; see checkRun. */
   individualLevel: boolean;
   rules: { bxtVersion: string; source: typeof rules.source };
 };
 
 export const Kinds = {
-  'broken': { severity: 'problem', title: 'Damaged demo', fix: 'The file can\'t be read. Download or copy it again; if your own copy is damaged, tell the moderators.' },
-  'unfinished': { severity: 'check', title: 'Unfinished demo', fix: 'Its recording didn\'t finish, probably because the game closed or crashed. Preflight read it anyway, but VolvoWrench needs it repaired first (Demo doctor), and its final time is only known to the second.' },
-  'missing': { severity: 'problem', title: 'Missing demo', fix: 'BXT numbers a run\'s demos from 1 with no gaps. Add the missing files.' },
-  'conflict': { severity: 'problem', title: 'Two different demos with the same number', fix: 'Keep the one from this run and remove the other.' },
-  'copy': { severity: 'check', title: 'The same demo twice', fix: 'Remove the extra copy.' },
-  'timer-start': { severity: 'problem', title: 'Timer already running in the first demo', fix: 'A run\'s first demo starts with the BXT timer at zero. Demos before it are missing, or the timer wasn\'t reset at the start.' },
-  'timer-jump': { severity: 'problem', title: 'Timer jumps between demos', fix: 'Each demo picks up the BXT timer where the one before stopped. A demo between them is probably missing, or the demos are out of order.' },
-  'no-game-end': { severity: 'check', title: 'No game end', fix: 'If this run ends at the end of the game, its last demo is missing.' },
-  'naming': { severity: 'check', title: 'Unexpected demo name', fix: 'BXT names a run\'s demos <name>_1.dem, <name>_2.dem and so on. Keep those names so the order is clear.' },
-  'no-bxt': { severity: 'problem', title: 'No BXT data', fix: 'Record runs with BunnymodXT, with _bxt_save_runtime_data_in_demos 1.' },
-  'bxt-version': { severity: 'problem', title: 'Wrong BXT version', fix: `Use the BXT build the moderators require: ${rules.bxtVersion}.` },
-  'cvar': { severity: 'problem', title: 'Setting with a disallowed value', fix: 'Set it to the required value before your next run, for example by resetting your config.' },
-  'cvar-format': { severity: 'info', title: 'Setting written differently', fix: 'The value is correct, but VolvoWrench compares text and will show it as illegal. Mention it when you submit, or set it exactly as shown.' },
-  'physics': { severity: 'check', title: 'Changed physics', fix: 'Physics settings must stay at their defaults.' },
-  'edicts': { severity: 'problem', title: 'Raised entity limit', fix: 'Don\'t raise the entity limit (edicts) above 900.' },
-  'big-map': { severity: 'problem', title: 'Big map support used without a restart', fix: 'bxt_enable_big_map isn\'t for RTA runs. Restart the game before a run.' },
-  'bxt-command': { severity: 'problem', title: 'Disallowed BXT command', fix: 'Only BXT\'s display commands are allowed during runs.' },
-  'disallowed': { severity: 'problem', title: 'Disallowed command', fix: 'This command isn\'t allowed during runs.' },
-  'probably-disallowed': { severity: 'check', title: 'Possibly disallowed command', fix: 'Changing settings like this during a run usually isn\'t allowed. A moderator will decide.' },
-  'cust': { severity: 'problem', title: 'cust value out of range', fix: 'Only cust_11 to cust_45 are allowed.' },
-  'load-unknown': { severity: 'problem', title: 'Loaded a save not made during the run', fix: 'A run may only load saves it made itself.' },
-  'load-named': { severity: 'check', title: 'Loaded a named save', fix: 'The save was made during the run. A moderator checks named saves.' },
-  'report-to-demo': { severity: 'problem', title: 'Bound report_to_demo', fix: 'report_to_demo is only for the kill-count tool. Don\'t bind it.' },
-  'bind-script': { severity: 'check', title: 'Possible script in a key bind', fix: 'Scriptless runs allow one command per key. A bind with ";" runs several.' },
-  'alias-script': { severity: 'check', title: 'Possible script in an alias', fix: 'Scriptless runs allow one command per key. This alias runs several.' },
-  'alias-movement': { severity: 'check', title: 'Movement in an alias', fix: 'Aliases that move the player are checked by a moderator.' },
-  'autojump': { severity: 'check', title: 'Possible autojump', fix: 'A jump ran without a key press in the same frame. Scriptless runs can\'t automate jumps.' },
-  'ducktap': { severity: 'check', title: 'Possible ducktap script', fix: 'A duck ran without a key press in the same frame. Scriptless runs can\'t automate ducks.' },
-  'load': { severity: 'info', title: 'Loaded a save', fix: '' },
-  'config': { severity: 'info', title: 'Config executed', fix: '' },
-  'game-end': { severity: 'info', title: 'Game end', fix: '' },
-  'blue-shift': { severity: 'info', title: 'Blue Shift retime', fix: '' },
-  'trigger': { severity: 'info', title: 'Custom trigger', fix: '' },
-  'split': { severity: 'info', title: 'Split trigger', fix: '' },
-} as const satisfies Record<string, { severity: Severity; title: string; fix: string }>;
+  'broken': { severity: 'problem', title: ['A demo is damaged', '# demos are damaged'], fix: 'Copy or download it again.' },
+  'unfinished': { severity: 'check', title: ['A demo is unfinished', '# demos are unfinished'], fix: 'The recording stopped early. Its time is only exact to the second, and the moderators have to repair it before their tool opens it.' },
+  'missing': { severity: 'problem', title: ['A demo is missing', '# demos are missing'], fix: 'Add the missing demos. BXT numbers them from 1 without gaps.' },
+  'conflict': { severity: 'problem', title: ['Two demos share a number', '# demo numbers are used twice'], fix: 'Remove the one that isn\'t from this run.' },
+  'copy': { severity: 'check', title: ['A demo is there twice', '# demos are there twice'], fix: 'Remove the copy.' },
+  'timer-start': { severity: 'problem', title: ['The timer was already running'], fix: 'Add the earlier demos. If the timer wasn\'t reset at the start, that can\'t be changed now.' },
+  'timer-jump': { severity: 'problem', title: ['The timer jumps between demos', 'The timer jumps # times between demos'], fix: 'Add the demo that\'s missing, or put the demos in order.' },
+  'load-unseen': { severity: 'problem', title: ['A save wasn\'t made in these demos', '# saves weren\'t made in these demos'], fix: 'It was probably made in a missing demo. Add the missing demos.' },
+  'no-game-end': { severity: 'check', title: ['There\'s no game end'], fix: 'If your run ends at the end of the game, the last demo is missing.' },
+  'naming': { severity: 'check', title: ['A demo has an unusual name', '# demos have unusual names'], fix: 'BXT names demos like run_1.dem and run_2.dem. Keep those names so the order is clear.' },
+  'no-bxt': { severity: 'problem', recorded: true, title: ['A demo has no BXT data', '# demos have no BXT data'], fix: 'Record with BunnymodXT and _bxt_save_runtime_data_in_demos 1 next time.' },
+  'bxt-version': { severity: 'problem', recorded: true, title: ['BXT isn\'t the required version'], fix: `Use ${rules.bxtVersion.replace(/^(\w{7})\w*-CLEAN based on (.+)$/, '$1 ($2)')} for your next run.` },
+  'cvar': { severity: 'problem', recorded: true, title: ['A setting isn\'t allowed', '# settings aren\'t allowed'], fix: 'Set it to the required value before your next run.' },
+  'cvar-format': { severity: 'check', title: ['A setting is written differently', '# settings are written differently'], fix: 'The value is right, but the moderators\' tool will still flag it. Set it exactly as shown to avoid that.' },
+  'physics': { severity: 'check', title: ['A physics setting changed', '# physics settings changed'], fix: 'Physics settings have to stay at their defaults.' },
+  'edicts': { severity: 'problem', recorded: true, title: ['The entity limit was raised'], fix: 'Keep edicts at 900 or below next time.' },
+  'big-map': { severity: 'problem', recorded: true, title: ['Big map support was left on'], fix: 'Restart the game before your next run.' },
+  'bxt-command': { severity: 'problem', recorded: true, title: ['A BXT command isn\'t allowed', '# BXT commands aren\'t allowed'], fix: 'Only use BXT\'s display commands next time.' },
+  'disallowed': { severity: 'problem', recorded: true, title: ['A command isn\'t allowed', '# commands aren\'t allowed'], fix: 'Remove it from your configs and binds before your next run.' },
+  'probably-disallowed': { severity: 'check', title: ['A command may not be allowed', '# commands may not be allowed'], fix: 'Changing settings mid-run usually isn\'t allowed. A moderator will decide.' },
+  'cust': { severity: 'problem', recorded: true, title: ['A cust value is out of range', '# cust values are out of range'], fix: 'Only use cust_11 to cust_45 next time.' },
+  'load-unknown': { severity: 'problem', recorded: true, title: ['A save wasn\'t made in this run', '# saves weren\'t made in this run'], fix: 'Only load saves made during the run next time.' },
+  'load-named': { severity: 'check', title: ['A named save was loaded', '# named saves were loaded'], fix: 'Saves made during the run are fine. A moderator will take a look.' },
+  'report-to-demo': { severity: 'problem', recorded: true, title: ['report_to_demo is bound to a key'], fix: 'Unbind it before your next run. It\'s only for kill counting.' },
+  'bind-script': { severity: 'check', title: ['A key runs several commands', '# keys run several commands'], fix: 'Scriptless runs allow one command per key.' },
+  'alias-script': { severity: 'check', title: ['An alias runs several commands', '# aliases run several commands'], fix: 'Scriptless runs allow one command per key.' },
+  'alias-movement': { severity: 'check', title: ['An alias moves you', '# aliases move you'], fix: 'A moderator will take a look.' },
+  'autojump': { severity: 'check', title: ['A jump may be scripted', '# jumps may be scripted'], fix: 'There was no key press for it. Scriptless runs can\'t automate jumps.' },
+  'ducktap': { severity: 'check', title: ['A duck may be scripted', '# ducks may be scripted'], fix: 'There was no key press for it. Scriptless runs can\'t automate ducks.' },
+  'load': { severity: 'info', title: ['A save was loaded', '# saves were loaded'], fix: '' },
+  'config': { severity: 'info', title: ['A config ran', '# configs ran'], fix: '' },
+  'game-end': { severity: 'info', title: ['The game ends', 'The game ends # times'], fix: '' },
+  'blue-shift': { severity: 'info', title: ['The run is retimed for Blue Shift'], fix: '' },
+  'trigger': { severity: 'info', title: ['A custom trigger was set', '# custom triggers were set'], fix: '' },
+  'split': { severity: 'info', title: ['A split trigger was set', '# split triggers were set'], fix: '' },
+} as const satisfies Record<string, { severity: Severity; recorded?: boolean; title: readonly [string, string?]; fix: string }>;
 export type Kind = keyof typeof Kinds;
+
+/** Recorded in the demos, so the run breaks the rules for good. */
+export const recorded = (kind: Kind) => 'recorded' in Kinds[kind];
+
+/** A finding's title for `n` items: "A setting isn't allowed", "3 settings aren't allowed". */
+export function title(kind: Kind, n: number) {
+  const [one, many = one] = Kinds[kind].title as readonly [string, string?];
+  return n === 1 ? one : many.replace('#', String(n));
+}
 
 // Commands that are always disallowed, unless they start with REPORT_TO_DEMO. WAIT only in Scriptless.
 const Disallowed = ['HOST_', 'SK_', 'CHASE', 'SKILL', 'CONNECT', 'DELTA', 'EDGEFRICTION', 'FS_', 'MAPCHANGECFGFILE',
@@ -150,12 +158,12 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
 
   for (const { name, demo } of files) {
     const where = (at?: At): Where => ({ demo: name, ...at });
-    if (demo.error) add(demo.recovered ? 'unfinished' : 'broken', demo.error, where());
+    if (demo.error) add(demo.recovered ? 'unfinished' : 'broken', demo.recovered ? '' : demo.error, where());
 
     const { mapName: map, gameDir } = demo.header;
     for (const { vars, ...at } of demo.moveVars)
       for (const [k, normal] of Object.entries(rules.physics))
-        if (vars[k as keyof typeof vars] !== normal) add('physics', `${k} is ${+vars[k as keyof typeof vars].toPrecision(7)} (normally ${normal})`, where(at));
+        if (vars[k as keyof typeof vars] !== normal) add('physics', `${k} ${+vars[k as keyof typeof vars].toPrecision(7)} (must be ${normal})`, where(at));
 
     const cvarRules = new Map(Object.entries(rules.cvars));
     if (mode === 'scriptless') for (const [k, v] of Object.entries(rules.scriptlessCvars)) cvarRules.set(k, v);
@@ -255,15 +263,18 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
   const individualLevel = offStart || (timerStarted && !gameEnded);
   checkDemoSet(files, add, individualLevel);
   if (start && seconds(start.first) > MaxTimerJump && !individualLevel)
-    add('timer-start', `${formatTime(start.first)} when ${start.name} starts`, { demo: start.name });
+    add('timer-start', `${formatTime(start.first)} at the start of ${start.name}`, { demo: start.name });
   for (const [i, b] of timeline.entries()) {
     const a = timeline[i - 1];
     if (!a) continue;
     // An unfinished demo's last time is only known to the second.
     const gap = seconds(b.first) - seconds(a.last);
     if (gap > MaxTimerJump + (a.recovered ? 1 : 0) || gap < -0.01)
-      add('timer-jump', `${formatTime(a.last)} at the end of ${a.name}, ${formatTime(b.first)} at the start of ${b.name}`, { demo: b.name });
+      add('timer-jump', `${formatTime(a.last)} at the end of ${a.name}, then ${formatTime(b.first)} at the start of ${b.name}`, { demo: b.name });
   }
+  // With demos missing, a save that was never made may simply be in one of them.
+  if (['missing', 'timer-start', 'timer-jump'].some(k => [...findings.keys()].some(key => key.startsWith(`${k}\n`))))
+    for (const [key, f] of findings) if (f.kind === 'load-unknown') findings.set(key, { ...f, kind: 'load-unseen' });
   if (timeline.length && !gameEnded && !individualLevel) add('no-game-end', '', { demo: timeline[timeline.length - 1].name });
 
   const severityOrder = { problem: 0, check: 1, info: 2 };
@@ -277,10 +288,7 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
     findings: [...findings.values()].sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity] || kindOrder.indexOf(a.kind) - kindOrder.indexOf(b.kind)),
     fps: {
       highest: ok.length ? 1 / Math.min(...ok.map(s => s.frametimeMin)) : 0,
-      lowest: ok.length ? 1 / Math.max(...ok.map(s => s.frametimeMax)) : 0,
-      average: ok.length ? ok.reduce((n, s) => n + s.count / s.frametimeSum, 0) / ok.length : 0,
     },
-    demoTime: files.reduce((n, f) => n + f.demo.entries.reduce((m, e) => m + e.trackTime, 0), 0),
     individualLevel,
     rules: { bxtVersion: rules.bxtVersion, source: rules.source },
   };

@@ -15,7 +15,7 @@ const count = (m: Map<Item, number>, k: Item) => m.set(k, (m.get(k) ?? 0) + 1);
 const Extra: Kind[] = ['broken', 'unfinished', 'missing', 'conflict', 'copy', 'naming', 'no-bxt', 'timer-start', 'timer-jump', 'no-game-end'];
 // Deliberate severity changes. VolvoWrench prints these uncoloured, except a number written differently, which it shows in red.
 const Reseverity: Partial<Record<Kind, [string, string]>> = {
-  'alias-script': ['info', 'check'], 'probably-disallowed': ['info', 'check'], 'cvar-format': ['problem', 'info'], 'bxt-version': ['info', 'problem'],
+  'alias-script': ['info', 'check'], 'probably-disallowed': ['info', 'check'], 'cvar-format': ['problem', 'check'], 'bxt-version': ['info', 'problem'],
 };
 // Also deliberate: commands that set a cvar to its required value, and save names with ".sav".
 const allRules = new Map(Object.entries({ ...rules.cvars, ...rules.scriptlessCvars, ...rules.skillCvars }));
@@ -89,7 +89,8 @@ function ourItems(findings: ReturnType<typeof checkRun>['findings'], demo: strin
     let subject = f.subject;
     let kind: string = f.kind;
     if (kind === 'cvar' || kind === 'cvar-format') { kind = 'cvar'; subject = subject.replace(/ \(must be .*\)$/, ''); }
-    else if (kind === 'physics') { const m = /^(\w+) is (\S+)/.exec(subject)!; subject = `${m[1]}=${Math.fround(Number(m[2]))}`; }
+    else if (kind === 'load-unseen') kind = 'load-unknown';
+    else if (kind === 'physics') { const m = /^(\w+) (\S+)/.exec(subject)!; subject = `${m[1]}=${Math.fround(Number(m[2]))}`; }
     else if (kind === 'alias-movement') subject = subject.split(':')[0];
     else if (['report-to-demo', 'game-end', 'blue-shift', 'trigger', 'split', 'big-map'].includes(kind)) subject = '';
     if (intended(kind, subject)) continue;
