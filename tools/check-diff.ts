@@ -24,8 +24,10 @@ const harmless = (command: string) => {
   const rule = allRules.get(name.toUpperCase());
   return rule !== undefined && (value === undefined || compareCvar(rule, value) !== 'different');
 };
+// And timer commands from the run-start bind, which Preflight allows until the timer moves.
 const intended = (kind: string, subject: string) =>
-  (['disallowed', 'probably-disallowed', 'bxt-command'].includes(kind) && harmless(subject)) || (kind.startsWith('load') && /\.sav$/i.test(subject));
+  (['disallowed', 'probably-disallowed', 'bxt-command'].includes(kind) && harmless(subject)) || (kind.startsWith('load') && /\.sav$/i.test(subject)) ||
+  (kind === 'bxt-command' && /^bxt_timer_(start|reset)$/i.test(subject));
 const severity = (color: string) => (color === 'illegal' ? 'problem' : color === 'warning' ? 'check' : 'info');
 
 /** VolvoWrench's lines for one demo, as items. */
@@ -82,9 +84,19 @@ function vwItems(entries: [string, string][]): { items: Map<Item, number>; unmap
 }
 
 /** Preflight's findings for one demo, keyed like VolvoWrench's. */
-function ourItems(findings: ReturnType<typeof checkRun>['findings'], demo: string): Map<Item, number> {
+function ourItems(findings: ReturnType<typeof checkRun>['findings'], demo: string, mode: string): Map<Item, number> {
   const items = new Map<Item, number>();
   for (const f of findings) {
+    // Stricter or gentler than VolvoWrench on purpose: report what it shows for the same thing.
+    if (f.kind === 'movement-script' || f.kind === 'third-person') {
+      const alias = /^([^\s;:]+): (.*)$/.exec(f.subject);
+      const as: Item | undefined =
+        f.kind === 'third-person' ? (f.subject.startsWith('cam_idealyaw "') ? `cvar|${f.subject}|problem` : `disallowed|${f.subject}|problem`)
+        : alias ? (mode === 'scripted' ? `alias-movement|${alias[1]}|check` : `alias-script|${f.subject}|info`)
+        : mode === 'scriptless' ? `bind-script|${f.subject}|check` : undefined;
+      if (as) for (const w of f.where) if (w.demo === demo) count(items, as);
+      continue;
+    }
     if (Extra.includes(f.kind)) continue;
     let subject = f.subject;
     let kind: string = f.kind;
@@ -114,7 +126,7 @@ for (const file of process.argv.slice(2)) {
 
   for (const d of vw.demos) {
     demos++;
-    const theirs = vwItems(d.entries), ours = ourItems(report.findings, d.path);
+    const theirs = vwItems(d.entries), ours = ourItems(report.findings, d.path, report.mode);
     const keys = new Set([...theirs.items.keys(), ...ours.keys()]);
     const diff = [...keys].filter(k => theirs.items.get(k) !== ours.get(k));
     if (!diff.length && !theirs.unmapped.length) { same++; continue; }

@@ -42,7 +42,7 @@ export function gauntlet(): Run[] {
       {
         name: 'run_1.dem',
         bytes: bxtDemo([
-          [...start({ sv_cheats: '1', lookstrafe: '0', fps_override: '1', bxt_autopause: '1', sk_battery1: '20', cl_pitchdown: '90', sv_voicecodec: 'voice_miles', bxt_fire_on_button_command: 'x' }, { version: 'cbc496b' })],
+          [...start({ sv_cheats: '1', lookstrafe: '0', fps_override: '1', bxt_autopause: '1', sk_battery1: '20', cl_pitchdown: '90', sv_voicecodec: 'voice_miles', bxt_fire_on_button_command: 'x', cam_idealyaw: '0' }, { version: 'cbc496b' })],
           [{ type: 'edicts', edicts: 1024 }, { type: 'flags', flags: 1 }],
           [bind('+jump'), command('+jump'), command('-jump'), command('+duck'), bind('say hi; kill'), bind('report_to_demo 1')],
           // Two presses cover two jumps. A press only counts in its own frame.
@@ -64,7 +64,7 @@ export function gauntlet(): Run[] {
         name: 'run_2.dem',
         bytes: bxtDemo([
           [...start({ bxt_bhopcap_prediction: '0', bxt_bhopcap: '0', fps_override: '1' }, { at: 62 })],
-          [command('load mysave'), command('load quick'), command('load hard'), time(70)],
+          [command('load mysave'), command('load quick'), command('load hard'), command('bxt_timer_reset'), time(70)],
         ]),
       },
       // run_3 is missing.
@@ -91,7 +91,7 @@ export function gauntlet(): Run[] {
         name: 'tas_1.dem',
         bytes: bxtDemo([
           [...start({ bxt_autojump: '1', cl_pitchdown: '90' })],
-          [{ type: 'alias', name: 'strafe', command: '+moveleft;wait;-moveleft' }, { type: 'alias', name: 'two', command: 'slot1;slot2' }, bind('a;b')],
+          [{ type: 'alias', name: 'strafe', command: 'alias move +moveleft' }, { type: 'alias', name: 'tau', command: '+forward; wait; -forward' }, { type: 'alias', name: 'two', command: 'slot1;slot2' }, bind('a;b'), bind('+moveleft;wait;-moveleft')],
           ['bxt_autojump 1', 'bxt_tas_jumpbug 1', 'bxt_hud_x 1', 'wait', 'cl_pitchup 90', '+jump', 'bxt_append x'].map(command),
         ]),
       },

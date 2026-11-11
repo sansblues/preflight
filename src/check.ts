@@ -47,12 +47,14 @@ export const Kinds = {
   'bxt-version': { severity: 'problem', recorded: true, title: ['BXT isn\'t the required version'], fix: `Use ${rules.bxtVersion.replace(/^(\w{7})\w*-CLEAN based on (.+)$/, '$1 ($2)')} for your next run.` },
   'cvar': { severity: 'problem', recorded: true, title: ['A setting isn\'t allowed', '# settings aren\'t allowed'], fix: 'Set it to the required value before your next run.' },
   'cvar-format': { severity: 'check', title: ['A setting is written differently', '# settings are written differently'], fix: 'The value is right, but the moderators\' tool will still flag it. Set it exactly as shown to avoid that.' },
+  'third-person': { severity: 'check', title: ['A Third Person setting is used', '# Third Person settings are used'], fix: 'It\'s only allowed in Third Person runs.' },
   'physics': { severity: 'check', title: ['A physics setting changed', '# physics settings changed'], fix: 'Physics settings have to stay at their defaults.' },
   'edicts': { severity: 'problem', recorded: true, title: ['The entity limit was raised'], fix: 'Keep edicts at 900 or below next time.' },
   'big-map': { severity: 'problem', recorded: true, title: ['Big map support was left on'], fix: 'Restart the game before your next run.' },
   'bxt-command': { severity: 'problem', recorded: true, title: ['A BXT command isn\'t allowed', '# BXT commands aren\'t allowed'], fix: 'Only use BXT\'s display commands next time.' },
   'disallowed': { severity: 'problem', recorded: true, title: ['A command isn\'t allowed', '# commands aren\'t allowed'], fix: 'Remove it from your configs and binds before your next run.' },
   'probably-disallowed': { severity: 'check', title: ['A command may not be allowed', '# commands may not be allowed'], fix: 'Changing settings mid-run usually isn\'t allowed. A moderator will decide.' },
+  'movement-script': { severity: 'problem', recorded: true, title: ['A script presses a movement key', '# scripts press movement keys'], fix: 'Scripts can\'t press movement keys. Press them yourself next time.' },
   'cust': { severity: 'problem', recorded: true, title: ['A cust value is out of range', '# cust values are out of range'], fix: 'Only use cust_11 to cust_45 next time.' },
   'load-unknown': { severity: 'problem', recorded: true, title: ['A save wasn\'t made in this run', '# saves weren\'t made in this run'], fix: 'Only load saves made during the run next time.' },
   'load-named': { severity: 'check', title: ['A named save was loaded', '# named saves were loaded'], fix: 'Saves made during the run are fine. A moderator will take a look.' },
@@ -84,6 +86,14 @@ export function title(kind: Kind, n: number) {
 const Disallowed = ['HOST_', 'SK_', 'CHASE', 'SKILL', 'CONNECT', 'DELTA', 'EDGEFRICTION', 'FS_', 'MAPCHANGECFGFILE',
   'NOTARGET', 'PLAYDEMO', 'S_SHOW', 'SPEC_POS', 'THIRDPERSON', 'SCR_', 'CAM', 'JOY'];
 const Movement = ['+LEFT', '+RIGHT', '+FORWARD', '+BACK', '+MOVERIGHT', '+MOVELEFT'];
+// The command whitelist bans pressing these in scripted sequences, and allows these settings only in Third Person runs.
+const ThirdPerson = ['cam_idealyaw', 'thirdperson'];
+
+/** A script with several commands that itself presses a movement key. Pointing a key at one (alias move +moveright) is fine. */
+function pressesMovement(script: string) {
+  const commands = script.split(';').map(c => c.trim()).filter(Boolean);
+  return commands.length > 1 && commands.some(c => Movement.includes(c.split(/\s+/)[0].toUpperCase()));
+}
 const AlwaysLoadable = ['QUICK', 'HARD', 'AUTOSAVE'];
 const BlueShiftStart = 'changelevel2 ba_security1 tram3_security1';
 const MaxTimerJump = 2; // Seconds. Complete runs show at most 1.
@@ -152,7 +162,7 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
   const saves = new Set<string>(); // Saves made so far in the run.
   let blueShiftStart: Time | undefined;
   let time: Time | undefined;
-  let gameEnded = false, timerStarted = false;
+  let gameEnded = false, timerStarted = false, timerMoved = false;
   const demos: Report['demos'] = [];
   const timeline: { name: string; first: Time; last: Time; recovered?: boolean }[] = [];
 
@@ -194,23 +204,31 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
               const rule = cvarRules.get(k.toUpperCase());
               if (rule === undefined) continue;
               const same = compareCvar(rule, v);
-              if (same !== 'same') add(same === 'format' ? 'cvar-format' : 'cvar', `${k.toLowerCase()} "${v}" (must be ${rule ? `"${rule.toLowerCase()}"` : 'empty'})`, at);
+              if (same !== 'same' && ThirdPerson.includes(k.toLowerCase())) add('third-person', `${k.toLowerCase()} "${v}"`, at);
+              else if (same !== 'same') add(same === 'format' ? 'cvar-format' : 'cvar', `${k.toLowerCase()} "${v}" (must be ${rule ? `"${rule.toLowerCase()}"` : 'empty'})`, at);
             }
             break;
           case 'time':
             firstTime ??= d;
             demoTime = d;
+            timerMoved ||= seconds(d) > MaxTimerJump;
             break;
           case 'bind': {
+            const moves = pressesMovement(d.command);
+            if (moves) add('movement-script', d.command.trim(), at);
             if (mode !== 'scriptless') break;
             const cmd = d.command.trim().toUpperCase();
             for (const p of Object.keys(presses) as (keyof typeof presses)[]) if (cmd.includes(p)) presses[p]++;
-            if (cmd.includes(';')) add('bind-script', d.command.trim(), at);
+            if (cmd.includes(';') && !moves) add('bind-script', d.command.trim(), at);
             if (cmd.includes('REPORT_TO_DEMO')) add('report-to-demo', d.command.trim(), at);
             break;
           }
           case 'alias': {
             const cmd = d.command.trim();
+            if (pressesMovement(cmd)) {
+              add('movement-script', `${d.name}: ${cmd}`, at);
+              break;
+            }
             if (mode === 'scriptless' && cmd.includes(';')) add('alias-script', `${d.name}: ${cmd}`, at);
             if (mode === 'scripted' && Movement.some(m => cmd.toUpperCase().includes(m))) add('alias-movement', `${d.name}: ${cmd}`, at);
             break;
@@ -219,7 +237,7 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
             add('config', d.filename, at);
             break;
           case 'command':
-            checkCommand(d.command.trim(), mode, presses, saves, cvarRules, add, at);
+            checkCommand(d.command.trim(), mode, presses, saves, cvarRules, timerMoved, add, at);
             if (/^bxt_timer_start\b/i.test(d.command.trim())) timerStarted = true;
             if (!blueShiftStart && d.command.trim().toLowerCase() === BlueShiftStart && groupTime?.type === 'time') blueShiftStart = groupTime;
             break;
@@ -296,7 +314,7 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
 
 function checkCommand(
   command: string, mode: Mode, presses: Record<'+JUMP' | '-JUMP' | '+DUCK' | '-DUCK', number>, saves: Set<string>,
-  cvarRules: Map<string, string>, add: (kind: Kind, subject: string, where: Where) => void, at: Where,
+  cvarRules: Map<string, string>, timerMoved: boolean, add: (kind: Kind, subject: string, where: Where) => void, at: Where,
 ) {
   const cmd = command.toUpperCase();
   if (cmd.startsWith('BIND') || cmd.startsWith('ALIAS')) return; // Making binds and aliases is fine; using them is checked.
@@ -305,6 +323,9 @@ function checkCommand(
   const [name, value] = command.split(/\s+/);
   const rule = cvarRules.get(name.toUpperCase());
   if (rule !== undefined && (value === undefined || compareCvar(rule, value.replace(/^"(.*)"$/, '$1')) !== 'different')) return;
+  // The run-start bind may start or reset the timer, before it has moved.
+  if (!timerMoved && /^bxt_timer_(start|reset)$/i.test(name)) return;
+  if (ThirdPerson.includes(name.toLowerCase())) return add('third-person', command, at);
 
   if (mode === 'scriptless') {
     for (const p of ['+JUMP', '-JUMP', '+DUCK', '-DUCK'] as const) {

@@ -32,13 +32,12 @@ test('scriptless gauntlet', () => {
     'problem edicts 1024 @ run_1.dem',
     'problem big-map bxt_enable_big_map @ run_1.dem',
     'problem bxt-command bxt_autojump 1 @ run_1.dem',
-    'problem bxt-command bxt_timer_start @ run_1.dem',
+    'problem bxt-command bxt_timer_reset @ run_2.dem', // After the timer moved. The earlier bxt_timer_start is allowed.
     'problem disallowed host_framerate 0.01 @ run_1.dem',
     'problem disallowed wait @ run_1.dem',
     'problem disallowed c_minyaw 0 @ run_1.dem',
     'problem disallowed playdemo x @ run_1.dem',
     'problem disallowed chase_active 1 @ run_1.dem',
-    'problem disallowed thirdperson @ run_1.dem',
     'problem disallowed joyadvanced 1 @ run_1.dem',
     'problem disallowed cam_command 1 @ run_1.dem',
     'problem disallowed sk_plr_9mm_bullet1 99 @ run_1.dem',
@@ -46,6 +45,8 @@ test('scriptless gauntlet', () => {
     'problem cust cust_99 @ run_1.dem',
     'problem report-to-demo report_to_demo 1 @ run_1.dem',
     'check cvar-format lookstrafe "0" (must be "0.000000") @ run_1.dem',
+    'check third-person cam_idealyaw "0" @ run_1.dem',
+    'check third-person thirdperson @ run_1.dem',
     'check physics gravity 400 (must be 800) @ run_1.dem run_1.dem',
     'check physics airaccelerate 100 (must be 10) @ run_1.dem',
     'check probably-disallowed cl_pitchdown 90 @ run_1.dem',
@@ -76,7 +77,9 @@ test('scripted gauntlet', () => {
   assert.deepEqual(lines(runs.scripted), [
     'problem no-game-end  @ tas_2.dem',
     'problem bxt-command bxt_hud_x 1 @ tas_1.dem',
-    'check alias-movement strafe: +moveleft;wait;-moveleft @ tas_1.dem',
+    'problem movement-script tau: +forward; wait; -forward @ tas_1.dem', // Presses movement itself.
+    'problem movement-script +moveleft;wait;-moveleft @ tas_1.dem',
+    'check alias-movement strafe: alias move +moveleft @ tas_1.dem', // Only points a key at movement.
   ]);
   assert.equal(checkRun(runs['tas-autojump']).mode, 'scripted');
 });
@@ -163,6 +166,8 @@ test('reports broken and unfinished demos, and keeps checking the rest', () => {
     'broken run_2.dem',
     'no-game-end run_1.dem',
     'bxt-command run_1.dem', // Still checked: the unfinished demo was recovered.
+    'movement-script run_1.dem',
+    'movement-script run_1.dem',
     'unfinished run_1.dem',
     'alias-movement run_1.dem',
   ]);
