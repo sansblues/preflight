@@ -1,5 +1,5 @@
 import { clock, formatTime, Kinds, type Finding, type Report, type Severity, type Where } from './check.ts';
-import type { Reply, Request } from './worker.ts';
+import type { Progress, Reply, Request } from './worker.ts';
 
 type Child = Node | string | false | null | undefined;
 type Picked = { name: string; file: File };
@@ -31,7 +31,7 @@ function start(files: Picked[]) {
     else idle(data.error);
   };
   send({ files });
-  progress({ done: 0, total: files.length, name: '' });
+  progress({ text: 'Opening files', done: 0, total: 0 });
 }
 
 const send = (request: Request) => worker!.postMessage(request);
@@ -53,11 +53,11 @@ function idle(error?: string) {
   );
 }
 
-function progress({ done, total, name }: { done: number; total: number; name: string }) {
+function progress({ text, done, total }: Progress) {
   render(
     h('section', { class: 'progress', 'aria-live': 'polite' },
-      h('p', {}, name ? `Reading ${name}` : 'Opening files'),
-      h('progress', { value: String(done), max: String(total || 1) }),
+      h('p', {}, text),
+      h('progress', total ? { value: String(done), max: String(total) } : {}),
       h('p', { class: 'muted' }, total ? `${done} of ${plural(total, 'demo')}` : '')),
   );
 }
@@ -149,7 +149,7 @@ async function dropped(data: DataTransfer) {
   };
   const entries = [...data.items].map(i => i.webkitGetAsEntry()).filter((e): e is FileSystemEntry => !!e);
   if (!entries.length) return start([...data.files].map(file => ({ name: file.name, file })));
-  progress({ done: 0, total: 0, name: '' });
+  progress({ text: 'Opening files', done: 0, total: 0 });
   await Promise.all(entries.map(e => walk(e, '')));
   start(files);
 }

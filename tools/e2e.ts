@@ -1,6 +1,6 @@
 // Drives the built site in Chrome: picks demos the way a person would and reads the report.
 // Usage: node tools/e2e.ts <screenshot folder> <fixture folder> <demos folder> <gauntlet folder>
-// Fixtures: run.zip (a real run, zipped) and notes.rar. Run `vite build` and tools/write-gauntlet.ts first.
+// Fixtures: run.zip, run.7z and run.rar (real runs) and notes.rar (not an archive). Run `vite build` and tools/write-gauntlet.ts first.
 
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
@@ -29,6 +29,8 @@ async function pick(page: Page, button: string, files: string | string[]) {
 async function check(name: string, scheme: 'light' | 'dark', run: (page: Page) => Promise<void>, width = 900) {
   const page = await browser.newPage({ colorScheme: scheme, viewport: { width, height: 900 } });
   const errors: string[] = [];
+  requests.length = 0;
+  page.on('request', r => requests.push(r.url()));
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => m.type() === 'error' && errors.push(m.text()));
   await page.goto('http://localhost:4173/');
@@ -38,6 +40,7 @@ async function check(name: string, scheme: 'light' | 'dark', run: (page: Page) =
   await page.close();
 }
 
+const requests: string[] = [];
 const text = (page: Page, selector: string) => page.locator(selector).first().innerText();
 
 // A real file drag, as the OS would deliver it.
@@ -87,7 +90,17 @@ await check('zip', 'light', async page => {
   const facts = await text(page, '.facts');
   expect(facts.startsWith('12 demos · c1a0 to'), `zip: ${facts}`);
   expect((await text(page, '.time')) === '5:28.936', `zip: time ${await text(page, '.time')}`);
+  expect(!requests.some(u => u.includes('7zz')), 'zip: 7-Zip not loaded');
 });
+
+for (const archive of ['run.7z', 'run.rar']) {
+  await check(archive.replace('.', '-'), 'light', async page => {
+    await pick(page, 'Choose files', join(fixtures, archive));
+    await page.locator('.verdict').waitFor();
+    expect((await text(page, '.facts')).startsWith(archive.endsWith('7z') ? '1 demo' : '7 demos'), `${archive}: ${await text(page, '.facts')}`);
+    expect(requests.some(u => u.endsWith('.wasm')), `${archive}: 7-Zip loaded on demand`);
+  });
+}
 
 await check('big', 'dark', async page => {
   const t0 = Date.now();
@@ -100,10 +113,10 @@ await check('big', 'dark', async page => {
   expect(true, 'big: mode switch');
 });
 
-await check('rar', 'light', async page => {
+await check('damaged', 'light', async page => {
   await pick(page, 'Choose files', join(fixtures, 'notes.rar'));
   await page.getByRole('alert').waitFor();
-  expect((await text(page, '[role=alert]')) === 'Preflight can\'t open notes.rar. Extract it and drop the folder instead.', 'rar: clear error');
+  expect((await text(page, '[role=alert]')) === 'notes.rar can\'t be opened. It may be damaged.', 'damaged archive: clear error');
 });
 
 await browser.close();

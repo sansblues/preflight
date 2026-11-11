@@ -191,6 +191,24 @@ progress::-moz-progress-bar {
   background: var(--accent);
 }
 
+progress:not([value]) {
+  background: linear-gradient(90deg, var(--line) 40%, var(--accent) 40% 60%, var(--line) 60%) 0 0 / 250% 100%;
+  animation: pending 1.4s linear infinite;
+}
+
+progress:not([value])::-webkit-progress-bar {
+  background: transparent;
+}
+
+@keyframes pending {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
 .label {
   font-size: 0.8125rem;
   letter-spacing: 0.06em;
@@ -340,5 +358,6 @@ footer {
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
+    animation: none !important;
   }
 }

@@ -2,10 +2,12 @@
 
 import { checkRun, demoNumber, type Input, type Mode, type Report } from './check.ts';
 import { parseDemo } from './demo.ts';
-import { unzip } from './zip.ts';
+import { extract, unzip } from './archive.ts';
+import sevenZip from '7z-wasm/7zz.wasm?url';
 
 export type Request = { files: { name: string; file: File }[] } | { mode: Mode };
-export type Reply = { progress: { done: number; total: number; name: string } } | { report: Report } | { error: string };
+export type Progress = { text: string; done: number; total: number };
+export type Reply = { progress: Progress } | { report: Report } | { error: string };
 
 type Source = { name: string; size: number; read(): Promise<Uint8Array<ArrayBuffer>> };
 
@@ -26,14 +28,18 @@ async function read(files: { name: string; file: File }[]): Promise<Input[]> {
   const other: string[] = [];
   for (const { name, file } of files) {
     if (/\.dem$/i.test(name)) sources.push({ name, size: file.size, read: async () => new Uint8Array(await file.arrayBuffer()) });
-    else if (/\.zip$/i.test(name)) sources.push(...(await unzip(file)).filter(e => /\.dem$/i.test(e.name) && !e.name.startsWith('__MACOSX/')));
+    else if (/\.(zip|7z|rar)$/i.test(name)) {
+      post({ progress: { text: `Opening ${name.split('/').pop()}`, done: 0, total: 0 } });
+      const entries = /\.zip$/i.test(name) ? await unzip(file) : await extract(file, name, sevenZip);
+      sources.push(...entries.filter(e => /\.dem$/i.test(e.name) && !e.name.startsWith('__MACOSX/')));
+    }
     else other.push(name);
   }
   if (!sources.length) {
-    const archive = other.find(n => /\.(rar|7z|tar|gz|zst)$/i.test(n));
+    const archive = other.find(n => /\.(tar|gz|tgz|bz2|xz|zst)$/i.test(n));
     throw new Error(archive
       ? `Preflight can't open ${archive.split('/').pop()}. Extract it and drop the folder instead.`
-      : 'No demos found. Drop .dem files, a folder with them or a zip.');
+      : 'No demos found. Drop .dem files, a folder with them, or a .zip, .7z or .rar.');
   }
 
   // Shorten "runs/any%/run_1.dem" to "run_1.dem" when all demos share the folder.
@@ -48,7 +54,7 @@ async function read(files: { name: string; file: File }[]): Promise<Input[]> {
 
   const inputs: Input[] = [];
   for (const [i, s] of sources.entries()) {
-    post({ progress: { done: i, total: sources.length, name: s.name } });
+    post({ progress: { text: `Reading ${s.name}`, done: i, total: sources.length } });
     try {
       const bytes = await s.read();
       const hash = repeated.has(numbers[i]!) ? hex(await crypto.subtle.digest('SHA-256', bytes)) : undefined;

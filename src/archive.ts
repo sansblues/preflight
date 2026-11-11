@@ -1,4 +1,6 @@
-// Reads zip files with the browser's own inflate, one entry at a time.
+// Opens archives: zip with the browser's own inflate, .7z and .rar with 7-Zip compiled to WebAssembly.
+
+import type { SevenZipModuleFactory } from '7z-wasm';
 
 export type Entry = { name: string; size: number; read(): Promise<Uint8Array<ArrayBuffer>> };
 
@@ -43,6 +45,34 @@ export async function unzip(zip: Blob): Promise<Entry[]> {
       },
     });
   }
+  return entries;
+}
+
+/** Extracts a .7z or .rar. 7-Zip loads only when needed; `wasm` is its file's URL, where it isn't next to the module. */
+export async function extract(archive: Blob, name: string, wasm?: string): Promise<Entry[]> {
+  // Its types say CommonJS, but both builds export the factory as default.
+  const SevenZip = (await import('7z-wasm')).default as unknown as SevenZipModuleFactory;
+  const errors: string[] = [];
+  // A fresh instance each time: 7-Zip's state doesn't survive a run.
+  const sz = await SevenZip({ print: () => {}, printErr: e => errors.push(e), ...(wasm && { locateFile: () => wasm }) });
+  sz.FS.writeFile('/archive', await bytes(archive));
+  sz.FS.mkdir('/x');
+  // An empty password makes encrypted archives fail at once instead of asking for one.
+  sz.callMain(['x', '/archive', '-o/x', '-y', '-p', '-bso0', '-bsp0']);
+
+  const entries: Entry[] = [];
+  const walk = (dir: string) => {
+    for (const n of sz.FS.readdir(dir)) {
+      if (n === '.' || n === '..') continue;
+      const path = `${dir}/${n}`;
+      const stat = sz.FS.stat(path);
+      if (sz.FS.isDir(stat.mode)) walk(path);
+      else entries.push({ name: path.slice(3), size: stat.size, read: async () => sz.FS.readFile(path) as Uint8Array<ArrayBuffer> });
+    }
+  };
+  walk('/x');
+  if (!entries.length && errors.some(e => e.includes('Wrong password'))) throw new Error(`${name} is password-protected. Extract it and drop the folder instead.`);
+  if (!entries.length && errors.length) throw new Error(`${name} can't be opened. It may be damaged.`);
   return entries;
 }
 
