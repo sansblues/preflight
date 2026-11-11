@@ -61,7 +61,7 @@ for (const scheme of ['light', 'dark'] as const) {
     await page.locator('.verdict').waitFor();
     expect((await text(page, '.verdict')) === 'Invalid run', `gauntlet: verdict "${await text(page, '.verdict')}"`);
     expect((await text(page, '.summary p')).startsWith('2:00.000 · 5 demos'), 'gauntlet: time');
-    expect((await page.locator('.items > li').count()) === 42, 'gauntlet: 42 findings');
+    expect((await page.locator('.items > li').count()) === 43, 'gauntlet: 43 findings');
   });
 }
 
