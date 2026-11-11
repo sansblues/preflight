@@ -18,7 +18,7 @@ for (const path of demos) {
 
   const stripped = new Uint8Array(file);
   new DataView(stripped.buffer).setInt32(540, 0, true);
-  const { header, error, ...recovered } = parseDemo(stripped);
+  const { header, error, recovered: _, ...recovered } = parseDemo(stripped);
   const { header: h0, error: e0, ...expected } = original;
   if (isDeepStrictEqual(recovered, expected) && error) same++;
   else console.log('differs:', path);

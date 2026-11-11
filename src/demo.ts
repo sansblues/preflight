@@ -74,6 +74,8 @@ export type Demo = {
    * frame by frame instead, and its entries are rebuilt as the engine would have written them.
    */
   error?: string;
+  /** True when the demo had no directory and was read frame by frame. */
+  recovered?: boolean;
 };
 
 const MOVEVARS: (keyof MoveVars)[] = [
@@ -248,6 +250,7 @@ export function parseDemo(file: Uint8Array): Demo {
   // Reads every complete frame from the start, then rebuilds the directory.
   // Recorded demos always have a LOADING entry with no time or frames, then Playback.
   function recover(): Demo {
+    demo.recovered = true;
     demo.error = 'The demo has no directory: its recording didn\'t finish, or the file is cut off. It was read up to its last complete frame.';
     for (let at = 544; at < file.length && demo.entries.length < 2; ) {
       const loading = demo.entries.length === 0;

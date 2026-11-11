@@ -44,9 +44,10 @@ test('groups BXT data by frame, with its time', () => {
 test('recovers a demo without a directory', () => {
   const unfinished = file.slice();
   new DataView(unfinished.buffer).setInt32(540, 0, true);
-  const { error, header, ...rest } = parseDemo(unfinished);
+  const { error, header, recovered, ...rest } = parseDemo(unfinished);
   const { error: _, header: __, ...expected } = parseDemo(file);
   assert.match(error!, /no directory/);
+  assert.equal(recovered, true);
   assert.deepEqual(rest, expected);
 });
 

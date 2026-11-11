@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "test": "node --test test/*.test.ts",
-    "check": "tsc"
+    "check": "tsc",
+    "rules": "node tools/rules.ts"
   },
   "devDependencies": {
     "@types/node": "24.19.2",
