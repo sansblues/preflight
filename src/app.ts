@@ -65,7 +65,9 @@ function progress({ done, total, name }: { done: number; total: number; name: st
 function report(r: Report) {
   const count = (s: Severity) => r.findings.filter(f => f.severity === s).length;
   const problems = count('problem'), checks = count('check');
-  const verdict = problems && checks ? `${plural(problems, 'problem')} and ${plural(checks, 'thing')} to check`
+  const individual = r.individualLevel;
+  const verdict = individual ? 'Individual-level run'
+    : problems && checks ? `${plural(problems, 'problem')} and ${plural(checks, 'thing')} to check`
     : problems ? plural(problems, 'problem')
     : checks ? `No problems, but ${plural(checks, 'thing')} to check`
     : 'No problems found';
@@ -79,13 +81,14 @@ function report(r: Report) {
       h('p', { class: 'label' }, 'BXT time'),
       h('p', { class: 'time' }, r.time ? formatTime(r.time) : 'No time'),
       last?.error && r.time && h('p', { class: 'muted' }, 'The last demo is unfinished, so this time is only accurate to the second.'),
-      h('p', { class: 'verdict', 'data-severity': problems ? 'problem' : checks ? 'check' : 'good' }, verdict),
+      h('p', { class: 'verdict', 'data-severity': individual ? 'info' : problems ? 'problem' : checks ? 'check' : 'good' }, verdict),
+      individual && h('p', { class: 'notice' }, 'Preflight only knows the full-game rules, which forbid setup that individual levels allow, like sv_cheats 1 before the timer starts. The moderators check individual levels by their own rules.'),
       h('p', { class: 'facts' },
         [plural(r.demos.length, 'demo'), maps, `checked as ${name(r.mode)}${r.mode === r.detectedMode ? '' : ` (detected ${name(r.detectedMode)})`}`].filter(Boolean).join(' · '),
         ' ', h('button', { class: 'link', click: () => send({ mode: other }) }, `Check as ${name(other)}`))),
-    section('Problems', r.findings.filter(f => f.severity === 'problem')),
-    section('To check', r.findings.filter(f => f.severity === 'check')),
-    section('Notes', r.findings.filter(f => f.severity === 'info')),
+    ...(individual && r.findings.length
+      ? [h('details', { class: 'full-game' }, h('summary', {}, `What the full-game rules flag (${r.findings.length})`), ...present(sections(r.findings)))]
+      : sections(r.findings)),
     h('section', {},
       h('h2', {}, 'About this run'),
       h('dl', {},
@@ -95,6 +98,14 @@ function report(r: Report) {
         h('dt', {}, 'Rules'), h('dd', {}, `VolvoWrench, ${new Date(r.rules.source.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`))),
     h('p', { class: 'actions' }, h('button', { class: 'primary', click: () => idle() }, 'Check another run')),
   );
+}
+
+function sections(findings: Finding[]) {
+  return [
+    section('Problems', findings.filter(f => f.severity === 'problem')),
+    section('To check', findings.filter(f => f.severity === 'check')),
+    section('Notes', findings.filter(f => f.severity === 'info')),
+  ];
 }
 
 function section(title: string, findings: Finding[]) {

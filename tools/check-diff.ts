@@ -11,7 +11,7 @@ const count = (m: Map<Item, number>, k: Item) => m.set(k, (m.get(k) ?? 0) + 1);
 // Each item is kind|subject|severity.
 
 // Kinds VolvoWrench doesn't have: Preflight's improvements.
-const Extra: Kind[] = ['broken', 'unfinished', 'missing', 'conflict', 'copy', 'naming', 'no-bxt'];
+const Extra: Kind[] = ['broken', 'unfinished', 'missing', 'conflict', 'copy', 'naming', 'no-bxt', 'timer-start', 'timer-jump', 'no-game-end'];
 // Deliberate severity changes. VolvoWrench prints these uncoloured, except a number written differently, which it shows in red.
 const Reseverity: Partial<Record<Kind, [string, string]>> = {
   'alias-script': ['info', 'check'], 'probably-disallowed': ['info', 'check'], 'cvar-format': ['problem', 'info'], 'bxt-version': ['info', 'problem'],

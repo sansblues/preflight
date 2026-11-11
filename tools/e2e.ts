@@ -56,9 +56,9 @@ for (const scheme of ['light', 'dark'] as const) {
   await check('gauntlet', scheme, async page => {
     await pick(page, 'Choose a folder', join(gauntlet, 'scriptless'));
     await page.locator('.verdict').waitFor();
-    expect((await text(page, '.verdict')) === '27 problems and 15 things to check', `gauntlet: verdict "${await text(page, '.verdict')}"`);
+    expect((await text(page, '.verdict')) === '28 problems and 15 things to check', `gauntlet: verdict "${await text(page, '.verdict')}"`);
     expect((await text(page, '.time')) === '2:00.000', 'gauntlet: time');
-    expect((await page.locator('.items > li').count()) === 51, 'gauntlet: 51 findings');
+    expect((await page.locator('.items > li').count()) === 52, 'gauntlet: 52 findings');
   });
 }
 
@@ -73,6 +73,13 @@ await check('phone', 'light', async page => {
   await page.locator('.verdict').waitFor();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'phone: no sideways scroll');
 }, 375);
+
+await check('individual-level', 'dark', async page => {
+  await pick(page, 'Choose a folder', join(gauntlet, 'individual-level'));
+  await page.locator('.verdict').waitFor();
+  expect((await text(page, '.verdict')) === 'Individual-level run', 'individual level: neutral verdict');
+  expect(!(await page.locator('.findings').first().isVisible()), 'individual level: full-game findings collapsed');
+});
 
 await check('zip', 'light', async page => {
   await pick(page, 'Choose files', join(fixtures, 'run.zip'));

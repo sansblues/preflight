@@ -20,8 +20,8 @@ function cvars(overrides: Record<string, string> = {}): BxtData {
   return { type: 'cvars', values };
 }
 
-const start = (overrides?: Record<string, string>, version = rules.bxtVersion): BxtData[] => [
-  { type: 'version', build: 3248, version }, cvars(overrides), { type: 'edicts', edicts: 900 }, { type: 'flags', flags: 0 }, { type: 'health', health: 100 }, time(0.03),
+const start = (overrides?: Record<string, string>, { version = rules.bxtVersion, at = 0.03 } = {}): BxtData[] => [
+  { type: 'version', build: 3248, version }, cvars(overrides), { type: 'edicts', edicts: 900 }, { type: 'flags', flags: 0 }, { type: 'health', health: 100 }, time(at),
 ];
 
 /** A demo with one engine frame per group of BXT data, each followed by a network frame. */
@@ -42,7 +42,7 @@ export function gauntlet(): Run[] {
       {
         name: 'run_1.dem',
         bytes: bxtDemo([
-          [...start({ sv_cheats: '1', lookstrafe: '0', fps_override: '1', bxt_autopause: '1', sk_battery1: '20', cl_pitchdown: '90', sv_voicecodec: 'voice_miles', bxt_fire_on_button_command: 'x' }, 'cbc496b')],
+          [...start({ sv_cheats: '1', lookstrafe: '0', fps_override: '1', bxt_autopause: '1', sk_battery1: '20', cl_pitchdown: '90', sv_voicecodec: 'voice_miles', bxt_fire_on_button_command: 'x' }, { version: 'cbc496b' })],
           [{ type: 'edicts', edicts: 1024 }, { type: 'flags', flags: 1 }],
           [bind('+jump'), command('+jump'), command('-jump'), command('+duck'), bind('say hi; kill'), bind('report_to_demo 1')],
           // Two presses cover two jumps. A press only counts in its own frame.
@@ -62,7 +62,7 @@ export function gauntlet(): Run[] {
       { // Steam: bxt_bhopcap must be 1 and fps_override isn't checked.
         name: 'run_2.dem',
         bytes: bxtDemo([
-          [...start({ bxt_bhopcap_prediction: '0', bxt_bhopcap: '0', fps_override: '1' })],
+          [...start({ bxt_bhopcap_prediction: '0', bxt_bhopcap: '0', fps_override: '1' }, { at: 62 })],
           [command('load mysave'), command('load quick'), command('load hard'), time(70)],
         ]),
       },
@@ -70,14 +70,14 @@ export function gauntlet(): Run[] {
       { // Blue Shift: battery rules differ, and the run is retimed from the tram.
         name: 'run_4.dem',
         bytes: bxtDemo([
-          [...start({ sk_battery1: '20', sk_battery2: '20', sk_battery3: '20' })],
+          [...start({ sk_battery1: '20', sk_battery2: '20', sk_battery3: '20' }, { at: 80 })],
           [command('changelevel2 ba_security1 tram3_security1'), time(80.25)],
           [{ type: 'gameEnd' }, time(100.5)],
         ], { map: 'ba_teleport2', gameDir: 'bshift' }),
       },
       { // Not a trilogy game: skill cvars aren't checked.
         name: 'run_5.dem',
-        bytes: bxtDemo([[...start({ sk_battery1: '99' })], [time(120)]], { gameDir: 'cstrike' }),
+        bytes: bxtDemo([[...start({ sk_battery1: '99' }, { at: 101 })], [time(120)]], { gameDir: 'cstrike' }),
       },
       { name: 'run_6.dem', bytes: demo([], [{ type: 'net', time: 1, frame: 1 }]) }, // No BXT.
     ],
@@ -94,7 +94,7 @@ export function gauntlet(): Run[] {
           ['bxt_autojump 1', 'bxt_tas_jumpbug 1', 'bxt_hud_x 1', 'wait', 'cl_pitchup 90', '+jump', 'bxt_append x'].map(command),
         ]),
       },
-      { name: 'tas_2.dem', bytes: bxtDemo([[...start({ bxt_autojump: '1' })], [time(5)]]) },
+      { name: 'tas_2.dem', bytes: bxtDemo([[...start({ bxt_autojump: '1' }, { at: 1 })], [time(5)]]) },
     ],
   };
 
@@ -103,5 +103,14 @@ export function gauntlet(): Run[] {
     files: [{ name: 'auto_1.dem', bytes: bxtDemo([[...start()], [command('+bxt_tas_autojump')]]) }],
   };
 
-  return [scriptless, scripted, tasAutojump];
+  // Individual levels set up inside the demo, then start the timer.
+  const individualLevel: Run = {
+    name: 'individual-level',
+    files: [{
+      name: 'IL_1.dem',
+      bytes: bxtDemo([[...start({ sv_cheats: '1' }, { at: 900 })], [command('bxt_ch_set_health 100'), command('bxt_timer_reset'), command('bxt_timer_start'), time(0.02)], [time(7.6)]], { map: 'c1a4j' }),
+    }],
+  };
+
+  return [scriptless, scripted, tasAutojump, individualLevel];
 }

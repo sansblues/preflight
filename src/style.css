@@ -244,6 +244,21 @@ progress::-moz-progress-bar {
   color: var(--muted);
 }
 
+.notice {
+  margin-top: 0.75rem;
+  max-width: 36rem;
+}
+
+.full-game {
+  margin-top: 2.5rem;
+}
+
+.full-game > summary {
+  cursor: pointer;
+  width: fit-content;
+  color: var(--muted);
+}
+
 .count {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;

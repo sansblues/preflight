@@ -29,6 +29,8 @@ export type Report = {
   fps: { highest: number; lowest: number; average: number };
   /** Seconds of demo playback, summed over the demos. */
   demoTime: number;
+  /** The timer starts inside a demo and the game doesn't end, unlike full-game runs. */
+  individualLevel: boolean;
   rules: { bxtVersion: string; source: typeof rules.source };
 };
 
@@ -38,6 +40,9 @@ export const Kinds = {
   'missing': { severity: 'problem', title: 'Missing demo', fix: 'BXT numbers a run\'s demos from 1 with no gaps. Add the missing files.' },
   'conflict': { severity: 'problem', title: 'Two different demos with the same number', fix: 'Keep the one from this run and remove the other.' },
   'copy': { severity: 'check', title: 'The same demo twice', fix: 'Remove the extra copy.' },
+  'timer-start': { severity: 'problem', title: 'Timer already running in the first demo', fix: 'A run\'s first demo starts with the BXT timer at zero. Demos before it are missing, or the timer wasn\'t reset at the start.' },
+  'timer-jump': { severity: 'problem', title: 'Timer jumps between demos', fix: 'Each demo picks up the BXT timer where the one before stopped. A demo between them is probably missing, or the demos are out of order.' },
+  'no-game-end': { severity: 'check', title: 'No game end', fix: 'If this run ends at the end of the game, its last demo is missing.' },
   'naming': { severity: 'check', title: 'Unexpected demo name', fix: 'BXT names a run\'s demos <name>_1.dem, <name>_2.dem and so on. Keep those names so the order is clear.' },
   'no-bxt': { severity: 'problem', title: 'No BXT data', fix: 'Record runs with BunnymodXT, with _bxt_save_runtime_data_in_demos 1.' },
   'bxt-version': { severity: 'problem', title: 'Wrong BXT version', fix: `Use the BXT build the moderators require: ${rules.bxtVersion}.` },
@@ -73,6 +78,7 @@ const Disallowed = ['HOST_', 'SK_', 'CHASE', 'SKILL', 'CONNECT', 'DELTA', 'EDGEF
 const Movement = ['+LEFT', '+RIGHT', '+FORWARD', '+BACK', '+MOVERIGHT', '+MOVELEFT'];
 const AlwaysLoadable = ['QUICK', 'HARD', 'AUTOSAVE'];
 const BlueShiftStart = 'changelevel2 ba_security1 tram3_security1';
+const MaxTimerJump = 2; // Seconds. Complete runs show at most 1.
 
 function disallowed(cmd: string, mode: Mode) {
   return !cmd.startsWith('REPORT_TO_DEMO') &&
@@ -139,7 +145,9 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
   const saves = new Set<string>(); // Saves made so far in the run.
   let blueShiftStart: Time | undefined;
   let time: Time | undefined;
+  let gameEnded = false, timerStarted = false;
   const demos: Report['demos'] = [];
+  const timeline: { name: string; first: Time; last: Time; recovered?: boolean }[] = [];
 
   for (const { name, demo } of files) {
     const where = (at?: At): Where => ({ demo: name, ...at });
@@ -157,7 +165,7 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
       for (const [k, v] of Object.entries(skill)) cvarRules.set(k, v);
     }
 
-    let hasBxt = false, gameEnd = false, demoTime: Time | undefined;
+    let hasBxt = false, gameEnd = false, firstTime: Time | undefined, demoTime: Time | undefined;
     for (const group of demo.bxt) {
       const at = where({ frame: group.frame, time: group.time });
       const groupTime = group.data.find(d => d.type === 'time');
@@ -183,6 +191,7 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
             }
             break;
           case 'time':
+            firstTime ??= d;
             demoTime = d;
             break;
           case 'bind': {
@@ -204,6 +213,7 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
             break;
           case 'command':
             checkCommand(d.command.trim(), mode, presses, saves, add, at);
+            if (/^bxt_timer_start\b/i.test(d.command.trim())) timerStarted = true;
             if (!blueShiftStart && d.command.trim().toLowerCase() === BlueShiftStart && groupTime?.type === 'time') blueShiftStart = groupTime;
             break;
           case 'gameEnd':
@@ -233,23 +243,41 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
     }
     if (!hasBxt && !(demo.error && !demo.recovered)) add('no-bxt', '', where());
     if (demoTime) time = demoTime;
+    if (firstTime && demoTime) timeline.push({ name, first: firstTime, last: demoTime, recovered: demo.recovered });
+    gameEnded ||= gameEnd;
     demos.push({ name, map, ...(demoTime && { time: demoTime }), ...(demo.error && { error: demo.error }) });
   }
 
+  const individualLevel = timerStarted && !gameEnded;
+  const [start] = timeline;
+  if (start && seconds(start.first) > MaxTimerJump && !individualLevel)
+    add('timer-start', `${formatTime(start.first)} when ${start.name} starts`, { demo: start.name });
+  for (const [i, b] of timeline.entries()) {
+    const a = timeline[i - 1];
+    if (!a) continue;
+    // An unfinished demo's last time is only known to the second.
+    const gap = seconds(b.first) - seconds(a.last);
+    if (gap > MaxTimerJump + (a.recovered ? 1 : 0) || gap < -0.01)
+      add('timer-jump', `${formatTime(a.last)} at the end of ${a.name}, ${formatTime(b.first)} at the start of ${b.name}`, { demo: b.name });
+  }
+  if (timeline.length && !gameEnded && !individualLevel) add('no-game-end', '', { demo: timeline[timeline.length - 1].name });
+
   const severityOrder = { problem: 0, check: 1, info: 2 };
+  const kindOrder = Object.keys(Kinds);
   const ok = files.filter(f => f.demo.stats.count > 0).map(f => f.demo.stats);
   return {
     mode,
     detectedMode,
     demos,
     ...(time && { time }),
-    findings: [...findings.values()].sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]),
+    findings: [...findings.values()].sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity] || kindOrder.indexOf(a.kind) - kindOrder.indexOf(b.kind)),
     fps: {
       highest: ok.length ? 1 / Math.min(...ok.map(s => s.frametimeMin)) : 0,
       lowest: ok.length ? 1 / Math.max(...ok.map(s => s.frametimeMax)) : 0,
       average: ok.length ? ok.reduce((n, s) => n + s.count / s.frametimeSum, 0) / ok.length : 0,
     },
     demoTime: files.reduce((n, f) => n + f.demo.entries.reduce((m, e) => m + e.trackTime, 0), 0),
+    individualLevel,
     rules: { bxtVersion: rules.bxtVersion, source: rules.source },
   };
 }
