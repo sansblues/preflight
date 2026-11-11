@@ -37,7 +37,7 @@ function vwItems(entries: [string, string][]): { items: Map<Item, number>; unmap
       if (i > 0) lines.push({ text: '', color: 'default' });
       const line = lines[lines.length - 1];
       line.text += part;
-      if (part && line.color === 'default' && color !== 'default') line.color = color;
+      if (part && line.color === 'default' && color !== 'default' && color !== 'fore') line.color = color;
     });
   }
   const items = new Map<Item, number>(), unmapped: string[] = [];
