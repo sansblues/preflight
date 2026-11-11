@@ -7,7 +7,7 @@ import { archive, bxtCommands, teaEncrypt } from './write.ts';
 const payload = (commands: Uint8Array[]) =>
   Uint8Array.from(commands.flatMap(c => [...c.subarray(7, c.indexOf(0, 7))]));
 
-const ALL: BxtData[] = [
+const All: BxtData[] = [
   { type: 'version', build: 4554, version: '9ec20d9534f7c1347a362bc85efcb6f3115994f6-CLEAN based on sep-19-2026' },
   { type: 'cvars', values: new Map([['sv_cheats', '0'], ['fps_max', '100.0'], ['name', 'ünïcode ;"\n']]) },
   { type: 'time', hours: 1, minutes: 2, seconds: 3, remainder: 0.25 },
@@ -34,12 +34,12 @@ test('TEA matches BunnymodXT', () => {
 });
 
 test('decodes every data type', () => {
-  assert.deepEqual(decodeBxt(payload(bxtCommands(archive(ALL)))), { data: ALL });
+  assert.deepEqual(decodeBxt(payload(bxtCommands(archive(All)))), { data: All });
 });
 
 test('decodes two archives saved in the same frame', () => {
-  const a = ALL.slice(0, 3), b = ALL.slice(3);
-  assert.deepEqual(decodeBxt(payload(bxtCommands(archive(a), archive(b)))).data, ALL);
+  const a = All.slice(0, 3), b = All.slice(3);
+  assert.deepEqual(decodeBxt(payload(bxtCommands(archive(a), archive(b)))).data, All);
 });
 
 test('round-trips random data, including escapes split across commands', () => {
@@ -60,15 +60,15 @@ test('round-trips random data, including escapes split across commands', () => {
 });
 
 test('keeps what it decoded before an error', () => {
-  const bytes = archive(ALL.slice(0, 2));
+  const bytes = archive(All.slice(0, 2));
   bytes[0] = 3; // Claims a third object, which isn't there.
   const cut = decodeBxt(payload(bxtCommands(bytes)));
-  assert.deepEqual(cut.data, ALL.slice(0, 2));
+  assert.deepEqual(cut.data, All.slice(0, 2));
   assert.ok(cut.error);
 
-  const unknown = [...archive([ALL[6]]), 15];
+  const unknown = [...archive([All[6]]), 15];
   unknown[0] = 2;
-  assert.deepEqual(decodeBxt(payload(bxtCommands(unknown))), { data: [ALL[6]], error: 'unknown data type 15' });
+  assert.deepEqual(decodeBxt(payload(bxtCommands(unknown))), { data: [All[6]], error: 'unknown data type 15' });
 });
 
 test('rejects malformed payloads', () => {

@@ -11,9 +11,9 @@ const count = (m: Map<Item, number>, k: Item) => m.set(k, (m.get(k) ?? 0) + 1);
 // Each item is kind|subject|severity.
 
 // Kinds VolvoWrench doesn't have: Preflight's improvements.
-const EXTRA: Kind[] = ['broken', 'unfinished', 'missing', 'conflict', 'copy', 'naming', 'no-bxt'];
+const Extra: Kind[] = ['broken', 'unfinished', 'missing', 'conflict', 'copy', 'naming', 'no-bxt'];
 // Deliberate severity changes. VolvoWrench prints these uncoloured, except a number written differently, which it shows in red.
-const RESEVERED: Partial<Record<Kind, [string, string]>> = {
+const Reseverity: Partial<Record<Kind, [string, string]>> = {
   'alias-script': ['info', 'check'], 'probably-disallowed': ['info', 'check'], 'cvar-format': ['problem', 'info'], 'bxt-version': ['info', 'problem'],
 };
 const severity = (color: string) => (color === 'illegal' ? 'problem' : color === 'warning' ? 'check' : 'info');
@@ -74,14 +74,14 @@ function vwItems(entries: [string, string][]): { items: Map<Item, number>; unmap
 function ourItems(findings: ReturnType<typeof checkRun>['findings'], demo: string): Map<Item, number> {
   const items = new Map<Item, number>();
   for (const f of findings) {
-    if (EXTRA.includes(f.kind)) continue;
+    if (Extra.includes(f.kind)) continue;
     let subject = f.subject;
     let kind: string = f.kind;
     if (kind === 'cvar' || kind === 'cvar-format') { kind = 'cvar'; subject = subject.replace(/ \(must be .*\)$/, ''); }
     else if (kind === 'physics') { const m = /^(\w+) is (\S+)/.exec(subject)!; subject = `${m[1]}=${Math.fround(Number(m[2]))}`; }
     else if (kind === 'alias-movement') subject = subject.split(':')[0];
     else if (['report-to-demo', 'game-end', 'blue-shift', 'trigger', 'split', 'big-map'].includes(kind)) subject = '';
-    const sev = RESEVERED[f.kind]?.[1] === f.severity ? RESEVERED[f.kind]![0] : f.severity;
+    const sev = Reseverity[f.kind]?.[1] === f.severity ? Reseverity[f.kind]![0] : f.severity;
     for (const w of f.where) if (w.demo === demo) count(items, `${kind}|${subject}|${sev}`);
   }
   // VolvoWrench lists each changed physics value once per demo.
@@ -97,7 +97,7 @@ for (const file of process.argv.slice(2)) {
   const report = checkRun(paths.map(p => ({ name: p, demo: parseDemo(readFileSync(p)) })));
   runs++;
   if ((report.mode === 'scriptless') !== vw.scriptless) console.log(`${file}: mode differs (${report.mode})`);
-  for (const f of report.findings) if (EXTRA.includes(f.kind)) extras.set(f.kind, (extras.get(f.kind) ?? 0) + f.where.length);
+  for (const f of report.findings) if (Extra.includes(f.kind)) extras.set(f.kind, (extras.get(f.kind) ?? 0) + f.where.length);
 
   for (const d of vw.demos) {
     demos++;

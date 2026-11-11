@@ -27,9 +27,9 @@ export type BxtData =
 
 export const seconds = (t: Time) => t.hours * 3600 + t.minutes * 60 + t.seconds + t.remainder;
 
-const KEY = [0x1337face, 0x12345678, 0xdeadbeef, 0xfeedabcd];
-const DELTA = 0x9e3779b9;
-const UNESCAPE: Record<number, number> = { 0x01: 0x00, 0x02: 0x22, 0x03: 0x0a, 0x04: 0x3b, 0xff: 0xff };
+const Key = [0x1337face, 0x12345678, 0xdeadbeef, 0xfeedabcd];
+const Delta = 0x9e3779b9;
+const Unescape: Record<number, number> = { 0x01: 0x00, 0x02: 0x22, 0x03: 0x0a, 0x04: 0x3b, 0xff: 0xff };
 const utf8 = new TextDecoder();
 
 /** Decodes the payload of one frame's BXT console commands (with the "//BXTD0" headers removed). */
@@ -55,7 +55,7 @@ function unescape(input: Uint8Array): Uint8Array {
   for (let i = 0; i < input.length; i++) {
     let b = input[i];
     if (b === 0xff) {
-      const original = UNESCAPE[input[++i]];
+      const original = Unescape[input[++i]];
       if (original === undefined) throw new Error('invalid escape sequence');
       b = original;
     }
@@ -72,9 +72,9 @@ function decrypt(bytes: Uint8Array): Uint8Array {
     let v1 = view.getUint32(i + 4, true);
     let sum = 0xc6ef3720;
     for (let round = 0; round < 32; round++) {
-      v1 = (v1 - ((((v0 << 4) + KEY[2]) ^ (v0 + sum) ^ ((v0 >>> 5) + KEY[3])) >>> 0)) >>> 0;
-      v0 = (v0 - ((((v1 << 4) + KEY[0]) ^ (v1 + sum) ^ ((v1 >>> 5) + KEY[1])) >>> 0)) >>> 0;
-      sum = (sum - DELTA) >>> 0;
+      v1 = (v1 - ((((v0 << 4) + Key[2]) ^ (v0 + sum) ^ ((v0 >>> 5) + Key[3])) >>> 0)) >>> 0;
+      v0 = (v0 - ((((v1 << 4) + Key[0]) ^ (v1 + sum) ^ ((v1 >>> 5) + Key[1])) >>> 0)) >>> 0;
+      sum = (sum - Delta) >>> 0;
     }
     view.setUint32(i, v0, true);
     view.setUint32(i + 4, v1, true);

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseDemo } from '../src/demo.ts';
-import { archive, bxtCommands, demo, DEFAULT_VARS, type Frame } from './write.ts';
+import { archive, bxtCommands, demo, DefaultVars, type Frame } from './write.ts';
 
 const version = { type: 'version', build: 4554, version: 'abc' } as const;
 const time = { type: 'time', hours: 0, minutes: 0, seconds: 1, remainder: 0.5 } as const;
@@ -32,8 +32,8 @@ test('parses header, entries and stats', () => {
 
 test('records movevars when they change', () => {
   assert.deepEqual(parseDemo(file).moveVars, [
-    { frame: 2, time: 0.5, vars: DEFAULT_VARS },
-    { frame: 11, time: 2, vars: { ...DEFAULT_VARS, gravity: 400 } },
+    { frame: 2, time: 0.5, vars: DefaultVars },
+    { frame: 11, time: 2, vars: { ...DefaultVars, gravity: 400 } },
   ]);
 });
 

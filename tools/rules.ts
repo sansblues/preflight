@@ -4,7 +4,7 @@
 // The literal tables (cvar values, allowed commands, the expected BXT build, physics defaults) are
 // extracted strictly: anything unexpected stops the script. The logic around them is ported by hand
 // in src/check.ts, so it's fingerprinted instead: when it changes upstream, the tests fail until
-// the port is reviewed and PORTED_LOGIC in src/check.ts is updated.
+// the port is reviewed and PortedLogic in src/check.ts is updated.
 
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';

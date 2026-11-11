@@ -71,25 +71,24 @@ export type Demo = {
   /**
    * Set when the file is broken. Everything read before the problem is kept.
    * A demo whose directory is missing (an unfinished recording, or a cut-off file) is read
-   * frame by frame instead, and its entries are rebuilt as the engine would have written them.
+   * frame by frame instead (`recovered`), and its entries are rebuilt as the engine would have written them.
    */
   error?: string;
-  /** True when the demo had no directory and was read frame by frame. */
   recovered?: boolean;
 };
 
-const MOVEVARS: (keyof MoveVars)[] = [
+const MoveVarKeys: (keyof MoveVars)[] = [
   'gravity', 'stopspeed', 'maxspeed', 'spectatormaxspeed', 'accelerate', 'airaccelerate', 'wateraccelerate',
   'friction', 'edgefriction', 'waterfriction', 'entgravity', 'bounce', 'stepsize', 'maxvelocity',
 ];
 
 // Network frame layout (after the frame header): fixed part, then the message.
-const NET_FIXED = 468;
-const NET_FRAMETIME = 64; // ref_params_t.frametime
-const NET_MSEC = 238; // usercmd_t.msec
-const NET_MOVEVARS = 288; // movevars_t, first field
+const NetFixed = 468;
+const NetFrametime = 64; // ref_params_t.frametime
+const NetMsec = 238; // usercmd_t.msec
+const NetMoveVars = 288; // movevars_t, first field
 
-const BXT_HEADER = [0x2f, 0x2f, 0x42, 0x58, 0x54, 0x44, 0x30]; // "//BXTD0"
+const BxtHeader = [0x2f, 0x2f, 0x42, 0x58, 0x54, 0x44, 0x30]; // "//BXTD0"
 
 class Broken extends Error {}
 
@@ -124,8 +123,7 @@ export function parseDemo(file: Uint8Array): Demo {
   };
 
   let lastVars = -1; // Offset of the last movevars seen.
-  // Reads the frames of one entry, up to its next-section frame.
-  // `seg` tracks progress, so a cut-off entry can still be described.
+  // Reads one entry's frames. `seg` tracks progress, so a cut-off entry can still be described.
   const readEntry = (seg: { end: number; lastTime: number; netFrames: number }) => {
     for (let done = false; !done; ) {
       let at = seg.end;
@@ -138,7 +136,7 @@ export function parseDemo(file: Uint8Array): Demo {
         case 2: break; // Demo start
         case 3: { // Console command
           need(at, 64);
-          if (BXT_HEADER.every((b, i) => file[at + i] === b)) {
+          if (BxtHeader.every((b, i) => file[at + i] === b)) {
             let end = at + 7;
             while (end < at + 64 && file[end] !== 0) end++;
             let g = groups.get(frame);
@@ -168,12 +166,12 @@ export function parseDemo(file: Uint8Array): Demo {
           break;
         }
         default: { // Network message
-          need(at, NET_FIXED);
-          const len = view.getInt32(at + NET_FIXED - 4, true);
-          need(at + NET_FIXED, len);
+          need(at, NetFixed);
+          const len = view.getInt32(at + NetFixed - 4, true);
+          need(at + NetFixed, len);
 
-          const frametime = view.getFloat32(at + NET_FRAMETIME, true);
-          const msec = file[at + NET_MSEC];
+          const frametime = view.getFloat32(at + NetFrametime, true);
+          const msec = file[at + NetMsec];
           if (s.count === 0) {
             s.frametimeMin = s.frametimeMax = frametime;
             s.msecMin = s.msecMax = msec;
@@ -187,15 +185,15 @@ export function parseDemo(file: Uint8Array): Demo {
           s.frametimeSum += frametime;
           s.msecSum += msec;
 
-          const mv = at + NET_MOVEVARS;
-          if (lastVars < 0 || !sameBytes(file, lastVars, mv, MOVEVARS.length * 4)) {
+          const mv = at + NetMoveVars;
+          if (lastVars < 0 || !sameBytes(file, lastVars, mv, MoveVarKeys.length * 4)) {
             const vars = {} as MoveVars;
-            MOVEVARS.forEach((k, i) => (vars[k] = view.getFloat32(mv + i * 4, true)));
+            MoveVarKeys.forEach((k, i) => (vars[k] = view.getFloat32(mv + i * 4, true)));
             demo.moveVars.push({ frame, time, vars });
           }
           lastVars = mv;
           seg.netFrames++;
-          at += NET_FIXED + len;
+          at += NetFixed + len;
         }
       }
       if (!done) seg.lastTime = time;

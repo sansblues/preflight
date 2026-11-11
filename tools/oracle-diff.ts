@@ -8,7 +8,7 @@ import { parseDemo } from '../src/demo.ts';
 import type { BxtData } from '../src/bxt.ts';
 
 // VolvoWrench's physics checks, in its order (GoldSourceParser.cs).
-const VW_PHYSICS = [
+const VwPhysics = [
   ['Gravity', 'gravity', 800], ['Stopspeed', 'stopspeed', 100], ['Maxspeed', 'maxspeed', 320],
   ['Accelerate', 'accelerate', 10], ['Airaccelerate', 'airaccelerate', 10], ['Friction', 'friction', 4],
   ['Edgefriction', 'edgefriction', 2], ['Stepsize', 'stepsize', 18], ['Maxvelocity', 'maxvelocity', 2000],
@@ -28,7 +28,7 @@ for (const line of lines) {
     header: demo.header,
     entries: demo.entries,
     stats: demo.stats,
-    cheats: [...new Set(demo.moveVars.flatMap(m => VW_PHYSICS.filter(([, k, v]) => m.vars[k] !== v).map(([n, k]) => `${n}: ${Math.fround(m.vars[k])}`)))],
+    cheats: [...new Set(demo.moveVars.flatMap(m => VwPhysics.filter(([, k, v]) => m.vars[k] !== v).map(([n, k]) => `${n}: ${Math.fround(m.vars[k])}`)))],
     bxt: demo.bxt.map(g => g.data.map(toOracle)),
     bxtErrors: demo.bxt.filter(g => g.error).map(g => `${g.frame}: ${g.error}`),
   };

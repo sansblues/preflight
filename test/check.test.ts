@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkRun, compareCvar, demoNumber, formatTime, PORTED_LOGIC, type Input } from '../src/check.ts';
+import { checkRun, compareCvar, demoNumber, formatTime, PortedLogic, type Input } from '../src/check.ts';
 import { parseDemo } from '../src/demo.ts';
 import rules from '../src/rules.json' with { type: 'json' };
 import { gauntlet } from './gauntlet.ts';
@@ -10,8 +10,8 @@ const lines = (inputs: Input[], options = {}) =>
   checkRun(inputs, options).findings.map(f => `${f.severity} ${f.kind} ${f.subject} @ ${f.where.map(w => w.demo).join(' ')}`);
 
 test('the port matches the VolvoWrench logic in rules.json', () => {
-  // If this fails, Verification.cs changed: port the change to src/check.ts, then update PORTED_LOGIC.
-  assert.equal(rules.logicHash, PORTED_LOGIC);
+  // If this fails, Verification.cs changed: port the change to src/check.ts, then update PortedLogic.
+  assert.equal(rules.logicHash, PortedLogic);
 });
 
 test('scriptless gauntlet', () => {
@@ -43,7 +43,7 @@ test('scriptless gauntlet', () => {
     'problem disallowed skill 3 @ run_1.dem',
     'problem cvar bxt_bhopcap "0" (must be "1") @ run_2.dem', // Steam
     'problem load-unknown load hard @ run_2.dem',
-    'problem no-bxt run_6.dem @ run_6.dem',
+    'problem no-bxt  @ run_6.dem',
     'check physics gravity is 400 (normally 800) @ run_1.dem run_1.dem',
     'check physics airaccelerate is 100 (normally 10) @ run_1.dem',
     'check autojump -jump @ run_1.dem',

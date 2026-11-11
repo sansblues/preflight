@@ -3,9 +3,9 @@
 import type { BxtData } from '../src/bxt.ts';
 import type { MoveVars } from '../src/demo.ts';
 
-const KEY = [0x1337face, 0x12345678, 0xdeadbeef, 0xfeedabcd];
-const TYPES = ['version', 'cvars', 'time', 'bind', 'alias', 'script', 'command', 'gameEnd', 'modules', 'trigger', 'edicts', 'health', 'split', 'flags'];
-const ESCAPE: Record<number, number> = { 0x00: 0x01, 0x22: 0x02, 0x0a: 0x03, 0x3b: 0x04, 0xff: 0xff };
+const Key = [0x1337face, 0x12345678, 0xdeadbeef, 0xfeedabcd];
+const Types = ['version', 'cvars', 'time', 'bind', 'alias', 'script', 'command', 'gameEnd', 'modules', 'trigger', 'edicts', 'health', 'split', 'flags'];
+const Escape: Record<number, number> = { 0x00: 0x01, 0x22: 0x02, 0x0a: 0x03, 0x3b: 0x04, 0xff: 0xff };
 
 class Bytes {
   out: number[] = [];
@@ -26,7 +26,7 @@ export function archive(objects: BxtData[]): number[] {
   const w = new Bytes();
   w.u32(objects.length);
   for (const o of objects) {
-    w.u8(TYPES.indexOf(o.type) + 1);
+    w.u8(Types.indexOf(o.type) + 1);
     switch (o.type) {
       case 'version': w.i32(o.build); w.str(o.version); break;
       case 'cvars': w.u32(o.values.size); for (const [k, v] of o.values) { w.str(k); w.str(v); } break;
@@ -51,8 +51,8 @@ export function teaEncrypt(block: Uint8Array) {
   let v0 = v.getUint32(0, true), v1 = v.getUint32(4, true), sum = 0;
   for (let i = 0; i < 32; i++) {
     sum = (sum + 0x9e3779b9) >>> 0;
-    v0 = (v0 + ((((v1 << 4) + KEY[0]) ^ (v1 + sum) ^ ((v1 >>> 5) + KEY[1])) >>> 0)) >>> 0;
-    v1 = (v1 + ((((v0 << 4) + KEY[2]) ^ (v0 + sum) ^ ((v0 >>> 5) + KEY[3])) >>> 0)) >>> 0;
+    v0 = (v0 + ((((v1 << 4) + Key[0]) ^ (v1 + sum) ^ ((v1 >>> 5) + Key[1])) >>> 0)) >>> 0;
+    v1 = (v1 + ((((v0 << 4) + Key[2]) ^ (v0 + sum) ^ ((v0 >>> 5) + Key[3])) >>> 0)) >>> 0;
   }
   v.setUint32(0, v0, true);
   v.setUint32(4, v1, true);
@@ -64,7 +64,7 @@ export function bxtCommands(...archives: number[][]): Uint8Array[] {
   for (const a of archives) {
     const padded = Uint8Array.from([...a, ...Array((8 - (a.length % 8)) % 8).fill(0xfe)]);
     for (let i = 0; i < padded.length; i += 8) teaEncrypt(padded.subarray(i, i + 8));
-    for (const b of padded) escaped.push(...(b in ESCAPE ? [0xff, ESCAPE[b]] : [b]));
+    for (const b of padded) escaped.push(...(b in Escape ? [0xff, Escape[b]] : [b]));
   }
   const commands: Uint8Array[] = [];
   for (let i = 0; i < escaped.length; i += 56) {
@@ -76,7 +76,7 @@ export function bxtCommands(...archives: number[][]): Uint8Array[] {
   return commands;
 }
 
-export const DEFAULT_VARS: MoveVars = {
+export const DefaultVars: MoveVars = {
   gravity: 800, stopspeed: 100, maxspeed: 320, spectatormaxspeed: 500, accelerate: 10, airaccelerate: 10,
   wateraccelerate: 10, friction: 4, edgefriction: 2, waterfriction: 1, entgravity: 1, bounce: 1, stepsize: 18, maxvelocity: 2000,
 };
@@ -104,8 +104,8 @@ export function demo(loading: Frame[], playback: Frame[], map = 'c1a0', gameDir 
         body.raw(Array(64).fill(0)); body.f32(f.frametime ?? 0.01);
         body.raw(Array(238 - 68).fill(0)); body.u8(f.msec ?? 10);
         body.raw(Array(288 - 239).fill(0));
-        const vars = { ...DEFAULT_VARS, ...f.vars };
-        for (const k of Object.keys(DEFAULT_VARS) as (keyof MoveVars)[]) body.f32(vars[k]);
+        const vars = { ...DefaultVars, ...f.vars };
+        for (const k of Object.keys(DefaultVars) as (keyof MoveVars)[]) body.f32(vars[k]);
         body.raw(Array(464 - 344).fill(0)); body.i32(3); body.raw([1, 2, 3]);
         w.raw(body.out);
       } else if (f.type === 'console') {

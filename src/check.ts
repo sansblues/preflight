@@ -10,7 +10,7 @@ import type { At, Demo } from './demo.ts';
 import rules from './rules.json' with { type: 'json' };
 
 /** The fingerprint of VolvoWrench's logic that this file ports (see tools/rules.ts). */
-export const PORTED_LOGIC = 'b6dfb2805276716e';
+export const PortedLogic = 'b6dfb2805276716e';
 
 export type Mode = 'scriptless' | 'scripted';
 export type Severity = 'problem' | 'check' | 'info';
@@ -32,8 +32,7 @@ export type Report = {
   rules: { bxtVersion: string; source: typeof rules.source };
 };
 
-// What each kind of finding means, and what to do about it.
-export const KINDS = {
+export const Kinds = {
   'broken': { severity: 'problem', title: 'Damaged demo', fix: 'The file can\'t be read. Download or copy it again; if your own copy is damaged, tell the moderators.' },
   'unfinished': { severity: 'check', title: 'Unfinished demo', fix: 'Its recording didn\'t finish, probably because the game closed or crashed. Preflight read it anyway, but VolvoWrench needs it repaired first (Demo doctor), and its final time is only known to the second.' },
   'missing': { severity: 'problem', title: 'Missing demo', fix: 'BXT numbers a run\'s demos from 1 with no gaps. Add the missing files.' },
@@ -66,20 +65,18 @@ export const KINDS = {
   'trigger': { severity: 'info', title: 'Custom trigger', fix: '' },
   'split': { severity: 'info', title: 'Split trigger', fix: '' },
 } as const satisfies Record<string, { severity: Severity; title: string; fix: string }>;
-export type Kind = keyof typeof KINDS;
-
-// --- Logic ported from VolvoWrench's ParseBxtData. ---
+export type Kind = keyof typeof Kinds;
 
 // Commands that are always disallowed, unless they start with REPORT_TO_DEMO. WAIT only in Scriptless.
-const DISALLOWED = ['HOST_', 'SK_', 'CHASE', 'SKILL', 'CONNECT', 'DELTA', 'EDGEFRICTION', 'FS_', 'MAPCHANGECFGFILE',
+const Disallowed = ['HOST_', 'SK_', 'CHASE', 'SKILL', 'CONNECT', 'DELTA', 'EDGEFRICTION', 'FS_', 'MAPCHANGECFGFILE',
   'NOTARGET', 'PLAYDEMO', 'S_SHOW', 'SPEC_POS', 'THIRDPERSON', 'SCR_', 'CAM', 'JOY'];
-const MOVEMENT = ['+LEFT', '+RIGHT', '+FORWARD', '+BACK', '+MOVERIGHT', '+MOVELEFT'];
-const ALWAYS_LOADABLE = ['QUICK', 'HARD', 'AUTOSAVE'];
-const BLUE_SHIFT_START = 'changelevel2 ba_security1 tram3_security1';
+const Movement = ['+LEFT', '+RIGHT', '+FORWARD', '+BACK', '+MOVERIGHT', '+MOVELEFT'];
+const AlwaysLoadable = ['QUICK', 'HARD', 'AUTOSAVE'];
+const BlueShiftStart = 'changelevel2 ba_security1 tram3_security1';
 
 function disallowed(cmd: string, mode: Mode) {
   return !cmd.startsWith('REPORT_TO_DEMO') &&
-    (DISALLOWED.some(s => cmd.includes(s)) || (mode === 'scriptless' && cmd.includes('WAIT')) || cmd.startsWith('C_'));
+    (Disallowed.some(s => cmd.includes(s)) || (mode === 'scriptless' && cmd.includes('WAIT')) || cmd.startsWith('C_'));
 }
 
 function probablyDisallowed(cmd: string, mode: Mode) {
@@ -100,12 +97,12 @@ export function detectMode(first: Demo | undefined): Mode {
   return 'scriptless';
 }
 
-const NUMBER = /^\s*[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?\s*$/;
+const Numeric = /^\s*[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?\s*$/;
 
 /** VolvoWrench compares upper-cased text. Preflight also accepts the same number written differently. */
 export function compareCvar(rule: string, value: string): 'same' | 'format' | 'different' {
   if (value.toUpperCase() === rule) return 'same';
-  return NUMBER.test(rule) && NUMBER.test(value) && Number(rule) === Number(value) ? 'format' : 'different';
+  return Numeric.test(rule) && Numeric.test(value) && Number(rule) === Number(value) ? 'format' : 'different';
 }
 
 /** The number in "<name>_<number>.dem", and the name, or undefined. */
@@ -114,11 +111,13 @@ export function demoNumber(file: string): { prefix: string; n: number } | undefi
   return m ? { prefix: m[1], n: Number(m[2]) } : undefined;
 }
 
-export function formatTime(t: Time) {
-  const s = seconds(t);
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), rest = s % 60;
-  return `${h ? `${h}:${String(m).padStart(2, '0')}` : m}:${rest.toFixed(3).padStart(6, '0')}`;
+/** "1:02:03.456", "2:03.456" or "0:03.456". */
+export function clock(s: number, digits = 3) {
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), rest = (s % 60).toFixed(digits).padStart(digits + 3, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${rest}` : `${m}:${rest}`;
 }
+
+export const formatTime = (t: Time) => clock(seconds(t));
 
 export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report {
   // Run order: by demo number, then name (VolvoWrench sorts by number only).
@@ -130,7 +129,7 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
     const key = `${kind}\n${subject}`;
     const f = findings.get(key);
     if (f) f.where.push(where);
-    else findings.set(key, { kind, severity: KINDS[kind].severity, subject, where: [where] });
+    else findings.set(key, { kind, severity: Kinds[kind].severity, subject, where: [where] });
   };
 
   checkDemoSet(files, add);
@@ -151,7 +150,6 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
       for (const [k, normal] of Object.entries(rules.physics))
         if (vars[k as keyof typeof vars] !== normal) add('physics', `${k} is ${+vars[k as keyof typeof vars].toPrecision(7)} (normally ${normal})`, where(at));
 
-    // The rules for this demo.
     const cvarRules = new Map(Object.entries(rules.cvars));
     if (mode === 'scriptless') for (const [k, v] of Object.entries(rules.scriptlessCvars)) cvarRules.set(k, v);
     if (rules.skillGameDirs.some(d => gameDir.startsWith(d))) {
@@ -198,7 +196,7 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
           case 'alias': {
             const cmd = d.command.trim();
             if (mode === 'scriptless' && cmd.includes(';')) add('alias-script', `${d.name}: ${cmd}`, at);
-            if (mode === 'scripted' && MOVEMENT.some(m => cmd.toUpperCase().includes(m))) add('alias-movement', `${d.name}: ${cmd}`, at);
+            if (mode === 'scripted' && Movement.some(m => cmd.toUpperCase().includes(m))) add('alias-movement', `${d.name}: ${cmd}`, at);
             break;
           }
           case 'script':
@@ -206,7 +204,7 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
             break;
           case 'command':
             checkCommand(d.command.trim(), mode, presses, saves, add, at);
-            if (!blueShiftStart && d.command.trim().toLowerCase() === BLUE_SHIFT_START && groupTime?.type === 'time') blueShiftStart = groupTime;
+            if (!blueShiftStart && d.command.trim().toLowerCase() === BlueShiftStart && groupTime?.type === 'time') blueShiftStart = groupTime;
             break;
           case 'gameEnd':
             if (gameEnd) break;
@@ -233,7 +231,7 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
         }
       }
     }
-    if (!hasBxt && !(demo.error && !demo.recovered)) add('no-bxt', name, where());
+    if (!hasBxt && !(demo.error && !demo.recovered)) add('no-bxt', '', where());
     if (demoTime) time = demoTime;
     demos.push({ name, map, ...(demoTime && { time: demoTime }), ...(demo.error && { error: demo.error }) });
   }
@@ -279,14 +277,13 @@ function checkCommand(
   if (cmd.startsWith('LOAD')) {
     const save = cmd.slice(4).trim();
     if (!saves.has(save)) add('load-unknown', command, at);
-    else add(ALWAYS_LOADABLE.includes(save) ? 'load' : 'load-named', command, at);
+    else add(AlwaysLoadable.includes(save) ? 'load' : 'load-named', command, at);
   }
   if (cmd.includes('CUST_') && !rules.allowedCust.some(c => cmd.includes(c))) add('cust', command, at);
   if (disallowed(cmd, mode)) add('disallowed', command, at);
   if (probablyDisallowed(cmd, mode)) add('probably-disallowed', command, at);
 }
 
-/** Missing, conflicting, copied and oddly named demos. */
 function checkDemoSet(files: Input[], add: (kind: Kind, subject: string, where: Where) => void) {
   const numbered = files.map(f => ({ f, id: demoNumber(f.name) }));
   const prefixes = new Set(numbered.flatMap(x => (x.id ? [x.id.prefix.toLowerCase()] : [])));
