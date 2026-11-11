@@ -4,7 +4,8 @@
 
 import { readFileSync } from 'node:fs';
 import { parseDemo } from '../src/demo.ts';
-import { checkRun, type Kind } from '../src/check.ts';
+import { checkRun, compareCvar, type Kind } from '../src/check.ts';
+import rules from '../src/rules.json' with { type: 'json' };
 
 type Item = `${string}|${string}`; // kind|subject
 const count = (m: Map<Item, number>, k: Item) => m.set(k, (m.get(k) ?? 0) + 1);
@@ -16,6 +17,15 @@ const Extra: Kind[] = ['broken', 'unfinished', 'missing', 'conflict', 'copy', 'n
 const Reseverity: Partial<Record<Kind, [string, string]>> = {
   'alias-script': ['info', 'check'], 'probably-disallowed': ['info', 'check'], 'cvar-format': ['problem', 'info'], 'bxt-version': ['info', 'problem'],
 };
+// Also deliberate: commands that set a cvar to its required value, and save names with ".sav".
+const allRules = new Map(Object.entries({ ...rules.cvars, ...rules.scriptlessCvars, ...rules.skillCvars }));
+const harmless = (command: string) => {
+  const [name, value] = command.split(/\s+/);
+  const rule = allRules.get(name.toUpperCase());
+  return rule !== undefined && (value === undefined || compareCvar(rule, value) !== 'different');
+};
+const intended = (kind: string, subject: string) =>
+  (['disallowed', 'probably-disallowed', 'bxt-command'].includes(kind) && harmless(subject)) || (kind.startsWith('load') && /\.sav$/i.test(subject));
 const severity = (color: string) => (color === 'illegal' ? 'problem' : color === 'warning' ? 'check' : 'info');
 
 /** VolvoWrench's lines for one demo, as items. */
@@ -59,6 +69,7 @@ function vwItems(entries: [string, string][]): { items: Map<Item, number>; unmap
     else if ((m = /^Max edicts value is higher than 900: (\d+)/.exec(t))) count(items, `edicts|${m[1]}`);
     else if (t.includes('bxt_enable_big_map')) count(items, 'big-map|');
     else unmapped.push(t);
+    for (const k of [...items.keys()]) if (!items0.has(k) && intended(...(k.split('|') as [string, string]))) items.delete(k);
     // Tag what this line added with its severity. Physics lines sit under a yellow header.
     for (const [k, n] of items) if (n !== items0.get(k) && k.split('|').length === 2) {
       items.delete(k);
@@ -81,6 +92,7 @@ function ourItems(findings: ReturnType<typeof checkRun>['findings'], demo: strin
     else if (kind === 'physics') { const m = /^(\w+) is (\S+)/.exec(subject)!; subject = `${m[1]}=${Math.fround(Number(m[2]))}`; }
     else if (kind === 'alias-movement') subject = subject.split(':')[0];
     else if (['report-to-demo', 'game-end', 'blue-shift', 'trigger', 'split', 'big-map'].includes(kind)) subject = '';
+    if (intended(kind, subject)) continue;
     const sev = Reseverity[f.kind]?.[1] === f.severity ? Reseverity[f.kind]![0] : f.severity;
     for (const w of f.where) if (w.demo === demo) count(items, `${kind}|${subject}|${sev}`);
   }

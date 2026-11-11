@@ -29,7 +29,7 @@ export type Report = {
   fps: { highest: number; lowest: number; average: number };
   /** Seconds of demo playback, summed over the demos. */
   demoTime: number;
-  /** The timer starts inside a demo and the game doesn't end, unlike full-game runs. */
+  /** Detected from where and how the timer starts; see checkRun. */
   individualLevel: boolean;
   rules: { bxtVersion: string; source: typeof rules.source };
 };
@@ -79,6 +79,7 @@ const Movement = ['+LEFT', '+RIGHT', '+FORWARD', '+BACK', '+MOVERIGHT', '+MOVELE
 const AlwaysLoadable = ['QUICK', 'HARD', 'AUTOSAVE'];
 const BlueShiftStart = 'changelevel2 ba_security1 tram3_security1';
 const MaxTimerJump = 2; // Seconds. Complete runs show at most 1.
+const StartMap = 'c1a0'; // Where Half-Life full-game runs start.
 
 function disallowed(cmd: string, mode: Mode) {
   return !cmd.startsWith('REPORT_TO_DEMO') &&
@@ -137,8 +138,6 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
     if (f) f.where.push(where);
     else findings.set(key, { kind, severity: Kinds[kind].severity, subject, where: [where] });
   };
-
-  checkDemoSet(files, add);
 
   const detectedMode = detectMode(files[0]?.demo);
   const mode = options.mode ?? detectedMode;
@@ -212,7 +211,7 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
             add('config', d.filename, at);
             break;
           case 'command':
-            checkCommand(d.command.trim(), mode, presses, saves, add, at);
+            checkCommand(d.command.trim(), mode, presses, saves, cvarRules, add, at);
             if (/^bxt_timer_start\b/i.test(d.command.trim())) timerStarted = true;
             if (!blueShiftStart && d.command.trim().toLowerCase() === BlueShiftStart && groupTime?.type === 'time') blueShiftStart = groupTime;
             break;
@@ -248,8 +247,13 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
     demos.push({ name, map, ...(demoTime && { time: demoTime }), ...(demo.error && { error: demo.error }) });
   }
 
-  const individualLevel = timerStarted && !gameEnded;
+  // Individual levels start away from the first map with the timer at zero (some, like Hazard Course, end the game),
+  // or start the timer inside a demo and don't end the game.
   const [start] = timeline;
+  const first = files[0]?.demo.header;
+  const offStart = !!first?.gameDir.startsWith('valve') && first.mapName !== StartMap && !!start && seconds(start.first) <= MaxTimerJump;
+  const individualLevel = offStart || (timerStarted && !gameEnded);
+  checkDemoSet(files, add, individualLevel);
   if (start && seconds(start.first) > MaxTimerJump && !individualLevel)
     add('timer-start', `${formatTime(start.first)} when ${start.name} starts`, { demo: start.name });
   for (const [i, b] of timeline.entries()) {
@@ -284,10 +288,15 @@ export function checkRun(inputs: Input[], options: { mode?: Mode } = {}): Report
 
 function checkCommand(
   command: string, mode: Mode, presses: Record<'+JUMP' | '-JUMP' | '+DUCK' | '-DUCK', number>, saves: Set<string>,
-  add: (kind: Kind, subject: string, where: Where) => void, at: Where,
+  cvarRules: Map<string, string>, add: (kind: Kind, subject: string, where: Where) => void, at: Where,
 ) {
   const cmd = command.toUpperCase();
   if (cmd.startsWith('BIND') || cmd.startsWith('ALIAS')) return; // Making binds and aliases is fine; using them is checked.
+
+  // Setting a cvar to its required value, or reading it, changes nothing. VolvoWrench flags these anyway.
+  const [name, value] = command.split(/\s+/);
+  const rule = cvarRules.get(name.toUpperCase());
+  if (rule !== undefined && (value === undefined || compareCvar(rule, value.replace(/^"(.*)"$/, '$1')) !== 'different')) return;
 
   if (mode === 'scriptless') {
     for (const p of ['+JUMP', '-JUMP', '+DUCK', '-DUCK'] as const) {
@@ -300,10 +309,12 @@ function checkCommand(
     const allowed = mode === 'scriptless' ? rules.allowedBxtCommands : [...rules.allowedBxtCommands, ...rules.scriptedBxtCommands];
     if (!allowed.some(a => cmd.includes(a))) add('bxt-command', command, at);
   }
-  if (cmd.startsWith('SAVE')) saves.add(cmd.slice(4).trim());
+  // The engine adds ".sav" itself, so "load x" and "load x.sav" are the same save. VolvoWrench compares the text.
+  const saveName = (s: string) => s.trim().replace(/\.SAV$/, '');
+  if (cmd.startsWith('SAVE')) saves.add(saveName(cmd.slice(4)));
   else if (command === 'autosave') saves.add('AUTOSAVE');
   if (cmd.startsWith('LOAD')) {
-    const save = cmd.slice(4).trim();
+    const save = saveName(cmd.slice(4));
     if (!saves.has(save)) add('load-unknown', command, at);
     else add(AlwaysLoadable.includes(save) ? 'load' : 'load-named', command, at);
   }
@@ -312,7 +323,7 @@ function checkCommand(
   if (probablyDisallowed(cmd, mode)) add('probably-disallowed', command, at);
 }
 
-function checkDemoSet(files: Input[], add: (kind: Kind, subject: string, where: Where) => void) {
+function checkDemoSet(files: Input[], add: (kind: Kind, subject: string, where: Where) => void, individualLevel: boolean) {
   const numbered = files.map(f => ({ f, id: demoNumber(f.name) }));
   const prefixes = new Set(numbered.flatMap(x => (x.id ? [x.id.prefix.toLowerCase()] : [])));
   for (const { f, id } of numbered) if (!id) add('naming', f.name, { demo: f.name });
@@ -326,10 +337,11 @@ function checkDemoSet(files: Input[], add: (kind: Kind, subject: string, where: 
       add(copy ? 'copy' : 'conflict', `${same[0].name} and ${f.name}`, { demo: f.name });
     }
   }
-  // Gaps below the highest number, as ranges.
-  const last = Math.max(0, ...byNumber.keys());
+  // Gaps as ranges. A full run's demos start at 1; an individual level's numbering may start anywhere.
+  const numbers = [...byNumber.keys()];
+  const last = Math.max(0, ...numbers);
   const prefix = numbered.find(x => x.id)?.id?.prefix;
-  for (let n = 1; n < last; n++) {
+  for (let n = individualLevel ? Math.min(...numbers) : 1; n < last; n++) {
     if (byNumber.has(n)) continue;
     let end = n;
     while (end + 1 < last && !byNumber.has(end + 1)) end++;

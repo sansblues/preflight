@@ -47,14 +47,12 @@ test('scriptless gauntlet', () => {
     'problem report-to-demo report_to_demo 1 @ run_1.dem',
     'check physics gravity is 400 (normally 800) @ run_1.dem run_1.dem',
     'check physics airaccelerate is 100 (normally 10) @ run_1.dem',
-    'check probably-disallowed sv_gravity 800 @ run_1.dem',
-    'check probably-disallowed cl_forwardspeed 400 @ run_1.dem',
     'check probably-disallowed cl_pitchdown 90 @ run_1.dem',
     'check probably-disallowed r_drawviewmodel 0 @ run_1.dem',
     'check probably-disallowed gl_clear 1 @ run_1.dem',
     'check probably-disallowed stats @ run_1.dem',
-    'check probably-disallowed mp_timelimit 0 @ run_1.dem',
     'check load-named load mysave @ run_1.dem run_2.dem', // Saves carry across demos.
+    'check load-named load mysave.sav @ run_1.dem', // The same save: the engine adds ".sav".
     'check bind-script say hi; kill @ run_1.dem',
     'check alias-script combo: +duck;wait;-duck @ run_1.dem',
     'check autojump -jump @ run_1.dem',
@@ -99,6 +97,9 @@ test('recognizes individual-level runs', () => {
   assert.equal(r.individualLevel, true);
   assert.ok(!r.findings.some(f => f.kind === 'timer-start' || f.kind === 'no-game-end'));
   assert.equal(checkRun(runs.scriptless).individualLevel, false); // A stray bxt_timer_start in a run that ends the game.
+  const configured = checkRun(runs['individual-level-config']);
+  assert.equal(configured.individualLevel, true);
+  assert.deepEqual(configured.findings.map(f => f.kind), ['game-end']); // Its demo numbers needn't start at 1.
 });
 
 test('the mode can be overridden', () => {

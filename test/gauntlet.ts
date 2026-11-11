@@ -53,6 +53,7 @@ export function gauntlet(): Run[] {
             'cust_99', 'cust_11', 'host_framerate 0.01', 'wait', 'c_minyaw 0', 'sv_aim 1', 'sv_gravity 800', 'cl_bob 0.01', 'cl_forwardspeed 400',
             'cl_pitchdown 90', 'r_drawviewmodel 0', 'gl_texturemode gl_linear', 'gl_clear 1', 'stats', 'mp_timelimit 0', 'bind x y', 'alias foo bar',
             'playdemo x', 'chase_active 1', 'thirdperson', 'joyadvanced 1', 'cam_command 1', 'impulse 101', 'sk_plr_9mm_bullet1 99', 'skill 3',
+            'skill 1', 'sv_cheats', 'load mysave.sav',
           ].map(command),
           [{ type: 'gameEnd' }, { type: 'gameEnd' }, time(61.5),
             { type: 'trigger', min: [0, 0, 0], max: [1, 2, 3], command: 'bxt_timer_stop' },
@@ -112,5 +113,11 @@ export function gauntlet(): Run[] {
     }],
   };
 
-  return [scriptless, scripted, tasAutojump, individualLevel];
+  // Or set up before recording: then they start away from c1a0 with the timer at zero. Hazard Course ends the game.
+  const configured: Run = {
+    name: 'individual-level-config',
+    files: [{ name: 'IL_536.dem', bytes: bxtDemo([[...start({}, { at: 0.05 })], [{ type: 'gameEnd' }, time(90)]], { map: 't0a0' }) }],
+  };
+
+  return [scriptless, scripted, tasAutojump, individualLevel, configured];
 }

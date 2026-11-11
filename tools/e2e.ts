@@ -56,9 +56,9 @@ for (const scheme of ['light', 'dark'] as const) {
   await check('gauntlet', scheme, async page => {
     await pick(page, 'Choose a folder', join(gauntlet, 'scriptless'));
     await page.locator('.verdict').waitFor();
-    expect((await text(page, '.verdict')) === '28 problems and 15 things to check', `gauntlet: verdict "${await text(page, '.verdict')}"`);
+    expect((await text(page, '.verdict')) === '28 problems and 13 things to check', `gauntlet: verdict "${await text(page, '.verdict')}"`);
     expect((await text(page, '.time')) === '2:00.000', 'gauntlet: time');
-    expect((await page.locator('.items > li').count()) === 52, 'gauntlet: 52 findings');
+    expect((await page.locator('.items > li').count()) === 50, 'gauntlet: 50 findings');
   });
 }
 

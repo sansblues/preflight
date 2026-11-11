@@ -202,6 +202,7 @@ export function parseDemo(file: Uint8Array): Demo {
   };
 
   try {
+    if (text(0, 4) === 'IDEM') throw new Broken('This demo was recorded with Xash3D. Runs must be recorded on GoldSrc, with BXT.');
     if (text(0, 8) !== 'HLDEMO' || file[7] !== 0) throw new Broken('This is not a GoldSrc demo.');
     need(0, 544);
     const h = demo.header;
