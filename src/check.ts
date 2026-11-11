@@ -41,7 +41,7 @@ export const Kinds = {
   'timer-start': { severity: 'problem', title: ['The timer was already running'], fix: 'Add the earlier demos. If the timer wasn\'t reset at the start, that can\'t be changed now.' },
   'timer-jump': { severity: 'problem', title: ['The timer jumps between demos', 'The timer jumps # times between demos'], fix: 'Add the demo that\'s missing, or put the demos in order.' },
   'load-unseen': { severity: 'problem', title: ['A save wasn\'t made in these demos', '# saves weren\'t made in these demos'], fix: 'It was probably made in a missing demo. Add the missing demos.' },
-  'no-game-end': { severity: 'check', title: ['There\'s no game end'], fix: 'If your run ends at the end of the game, the last demo is missing.' },
+  'no-game-end': { severity: 'problem', title: ['The game doesn\'t end'], fix: 'The last demo is probably missing. Add it.' },
   'naming': { severity: 'check', title: ['A demo has an unusual name', '# demos have unusual names'], fix: 'BXT names demos like run_1.dem and run_2.dem. Keep those names so the order is clear.' },
   'no-bxt': { severity: 'problem', recorded: true, title: ['A demo has no BXT data', '# demos have no BXT data'], fix: 'Record with BunnymodXT and _bxt_save_runtime_data_in_demos 1 next time.' },
   'bxt-version': { severity: 'problem', recorded: true, title: ['BXT isn\'t the required version'], fix: `Use ${rules.bxtVersion.replace(/^(\w{7})\w*-CLEAN based on (.+)$/, '$1 ($2)')} for your next run.` },

@@ -74,8 +74,8 @@ test('scripted gauntlet', () => {
   const report = checkRun(runs.scripted);
   assert.equal(report.mode, 'scripted');
   assert.deepEqual(lines(runs.scripted), [
+    'problem no-game-end  @ tas_2.dem',
     'problem bxt-command bxt_hud_x 1 @ tas_1.dem',
-    'check no-game-end  @ tas_2.dem',
     'check alias-movement strafe: +moveleft;wait;-moveleft @ tas_1.dem',
   ]);
   assert.equal(checkRun(runs['tas-autojump']).mode, 'scripted');
@@ -161,9 +161,9 @@ test('reports broken and unfinished demos, and keeps checking the rest', () => {
   ]);
   assert.deepEqual(r.findings.filter(f => f.severity !== 'info').map(f => `${f.kind} ${f.where[0].demo}`), [
     'broken run_2.dem',
+    'no-game-end run_1.dem',
     'bxt-command run_1.dem', // Still checked: the unfinished demo was recovered.
     'unfinished run_1.dem',
-    'no-game-end run_1.dem',
     'alias-movement run_1.dem',
   ]);
 });
