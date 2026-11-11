@@ -1,0 +1,21 @@
+name: Rules
+
+# Fails when the moderators' VolvoWrench changes its rules, so they can be updated here.
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: git clone --depth 1 --branch scriptless https://github.com/hobokenn/VolvoWrench.git vw
+      - run: node tools/rules.ts vw
+      - run: git diff --exit-code src/rules.json
